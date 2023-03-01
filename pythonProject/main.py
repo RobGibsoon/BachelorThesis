@@ -18,13 +18,20 @@ import matplotlib
 
 matplotlib.use('TkAgg')
 
+
+def create_embedded_graph_set(graph_set):
+    embedded_graphs = []
+    for i in range(len(graph_set)):
+        g = EmbeddedGraph(graph_set[i])
+        embedded_graphs.append(g)
+        # print(g.embedding)
+        # g = to_networkx(embedded_graphs[i])
+        # nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
+        # plt.show()
+
+    return embedded_graphs
+
+
 if __name__ == "__main__":
     dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
-    embedded_graphs = []
-    for i in range(5):
-        g = EmbeddedGraph(dataset[i])
-        embedded_graphs.append(g)
-        print(g.embedding)
-        g = to_networkx(embedded_graphs[i])
-        nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
-        plt.show()
+    # embedded_graph_set = create_embedded_graph_set(dataset)

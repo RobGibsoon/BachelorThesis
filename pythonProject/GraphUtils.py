@@ -18,6 +18,7 @@ def get_zagreb_index(graph):
 
 
 def get_basic_descriptors(graph):
+    """Get basic descriptors like num_nodes and num_edges of a graph"""
     assert graph.is_undirected()
     num_nodes = graph.num_nodes
     num_edges = int(len(graph.edge_index[1])/2)
@@ -25,6 +26,7 @@ def get_basic_descriptors(graph):
 
 
 def get_all_indices(graph):
+    """returns a np-array with all the indices of a graph"""
     indices = get_zagreb_index(graph)
-    indices = np.add(indices, get_basic_descriptors(graph))
+    indices = np.append(indices, get_basic_descriptors(graph))
     return indices
