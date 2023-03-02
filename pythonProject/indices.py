@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from utils import torch_to_csr
+from utils import torch_to_csr, get_distance_matrix, get_degrees
 from scipy.sparse import csr_matrix
 from torch_geometric.utils import degree, dense_to_sparse, to_dense_adj
 from scipy.sparse.csgraph import dijkstra
@@ -14,12 +14,6 @@ def create_zagreb_index(graph):
     zagreb_index = torch.sum(squared_degrees).item()
     assert zagreb_index % 1 == 0
     return np.array([int(zagreb_index)])
-
-
-def get_degrees(graph):
-    edge_index = graph.edge_index[0]
-    num_nodes = graph.num_nodes
-    return degree(edge_index, num_nodes)
 
 
 def create_basic_descriptors(graph):
@@ -48,19 +42,6 @@ def create_polarity_number_index(graph):
     # distance 3
     polarity_nr = count_dist_3 / 2
     return np.array([int(polarity_nr)])
-
-
-def get_distance_matrix(graph):
-    """for a graph returns a np-array (num_nodes, num_nodes) with the shortest path distances for each of the nodes"""
-    assert graph.is_undirected()
-    adj = to_dense_adj(graph.edge_index)
-    graph = np.squeeze(adj.numpy(), axis=0)  # collapse outer dimension to get (n,n) array
-    graph = graph.tolist()
-    if len(graph) == 0:
-        return np.array([0])
-    csr_mat = csr_matrix(graph)
-    dist_matrix = dijkstra(csgraph=csr_mat, directed=False)
-    return dist_matrix
 
 
 def create_wiener_index(graph):
