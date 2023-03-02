@@ -1,4 +1,4 @@
-from GraphUtils import get_all_indices
+from indices import get_all_indices
 from torch_geometric.data import Data
 
 

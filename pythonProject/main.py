@@ -6,11 +6,13 @@
 import numpy as np
 import torch
 import torch_geometric
-from EmbeddedGraph import EmbeddedGraph
+from embedded_graph import EmbeddedGraph
+from indices import create_polarity_number_index
+from torch_geometric.data import Data
 from torch_geometric.datasets import TUDataset, Planetoid
 from torch_geometric.loader import DataLoader
 from torch_geometric.nn import GCNConv
-from torch_geometric.utils import degree, to_networkx
+from torch_geometric.utils import degree, to_networkx, is_sparse, to_dense_adj
 import torch.nn.functional as F
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -32,6 +34,22 @@ def create_embedded_graph_set(graph_set):
     return embedded_graphs
 
 
+def testing_stuff(data):
+    edge_index_example_bigger = torch.tensor([[0, 1, 1, 2, 2, 3, 3, 4, 2, 5],
+                                              [1, 0, 2, 1, 3, 2, 4, 3, 5, 2]], dtype=torch.long)
+    x_example_bigger = torch.tensor([[-1], [0], [1], [1], [1], [1]], dtype=torch.float)
+
+    data_directed = Data(x=x_example_bigger, edge_index=edge_index_example_bigger)
+    g = to_networkx(data_directed)
+    nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
+    plt.show()
+
+
 if __name__ == "__main__":
     dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
-    # embedded_graph_set = create_embedded_graph_set(dataset)
+    test_data = dataset[1]
+    g = to_networkx(test_data)
+    nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
+    plt.show()
+    #testing_stuff(test_data)
+    testing_stuff(test_data)
