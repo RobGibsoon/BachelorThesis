@@ -35,21 +35,17 @@ def create_embedded_graph_set(graph_set):
 
 
 def testing_stuff(data):
-    edge_index_example_bigger = torch.tensor([[0, 1, 1, 2, 2, 3, 3, 4, 2, 5],
-                                              [1, 0, 2, 1, 3, 2, 4, 3, 5, 2]], dtype=torch.long)
-    x_example_bigger = torch.tensor([[-1], [0], [1], [1], [1], [1]], dtype=torch.float)
-
-    data_directed = Data(x=x_example_bigger, edge_index=edge_index_example_bigger)
-    g = to_networkx(data_directed)
-    nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
-    plt.show()
+    a = np.array([[0, 1, 2],
+                 [1, 0, 1],
+                 [2, 1, 0]])
+    print(np.sum(a))
 
 
 if __name__ == "__main__":
     dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
     test_data = dataset[1]
-    g = to_networkx(test_data)
-    nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
-    plt.show()
+    # g = to_networkx(test_data)
+    # nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
+    # plt.show()
     #testing_stuff(test_data)
     testing_stuff(test_data)
