@@ -4,10 +4,21 @@ from unittest import TestCase
 import networkx as nx
 import numpy as np
 import torch
-from indices import create_zagreb_index, create_basic_descriptors, get_all_indices, create_polarity_number_index
+from indices import create_zagreb_index, create_basic_descriptors, get_all_indices, create_polarity_number_index, \
+    create_wiener_index, create_randic_index
 from matplotlib import pyplot as plt
 from torch_geometric.data import Data
 from torch_geometric.utils import to_networkx
+import matplotlib
+
+matplotlib.use('TkAgg')
+
+"""
+    use the following code to draw a graph
+    # g = to_networkx(test_data)
+    # nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
+    # plt.show()
+    """
 
 
 class Test(TestCase):
@@ -29,46 +40,77 @@ class Test(TestCase):
     data_example = Data(x=x_example, edge_index=edge_index_example)
     data_example_bigger = Data(x=x_example_bigger, edge_index=edge_index_example_bigger)
 
-    def test_get_zagreb_index(self):
+    def test_create_zagreb_index(self):
         expected = np.array([6])
         result = create_zagreb_index(self.data_example)
         self.assertTrue(np.array_equal(result, expected), f'calculating zagreb_index failed: expected {expected} but '
                                                           f'got {result}')
 
-    def test_get_zagreb_index_empty_graph(self):
+    def test_create_zagreb_index_empty_graph(self):
         expected = np.array([0])
         result = create_zagreb_index(self.data_empty)
         self.assertTrue(np.array_equal(result, expected), f'calculating zagreb_index failed: expected {expected} but '
                                                           f'got {result}')
 
-    def test_get_zagreb_index_directed_graph(self):
+    def test_create_zagreb_index_directed_graph(self):
         self.assertFalse(self.data_directed.is_undirected())
         with self.assertRaises(AssertionError):
             create_zagreb_index(self.data_directed)
 
-    def test_get_basic_descriptors(self):
+    def test_create_basic_descriptors(self):
         expected = np.array([3, 2])
         result = create_basic_descriptors(self.data_example)
         self.assertTrue(np.array_equal(result, expected))
 
-    def test_get_polarity_nr(self):
+    def test_create_polarity_nr(self):
         expected = np.array([0])
         result1 = create_polarity_number_index(self.data_example)
-        result2 = create_polarity_number_index(self.data_empty)
         self.assertTrue(np.array_equal(result1, expected),
-                        f'getting polarity_nr failed: expected {expected} but got {result1}')
-        self.assertTrue(np.array_equal(result2, expected),
-                        f'getting polarity_nr failed: expected {expected} but got {result2}')
-        expected2 = np.array([4])
-        result3 = create_polarity_number_index(self.data_example_bigger)
-        self.assertTrue(np.array_equal(result3, expected2),
-                        f'getting polarity_nr failed: expected {expected2} but got {result3}')
+                        f'creating polarity_nr failed: expected {expected} but got {result1}')
+
+    def test_create_polarity_nr_empty(self):
+        expected = np.array([0])
+        result = create_polarity_number_index(self.data_empty)
+        self.assertTrue(np.array_equal(result, expected),
+                        f'creating polarity_nr failed: expected {expected} but got {result}')
+
+    def test_create_polarity_nr_bigger(self):
+        expected = np.array([4])
+        result = create_polarity_number_index(self.data_example_bigger)
+        self.assertTrue(np.array_equal(result, expected),
+                        f'creating polarity_nr failed: expected {expected} but got {result}')
 
     def test_get_all_indices(self):
         expected = np.array([6, 3, 2])
         result = get_all_indices(self.data_example)
         self.assertTrue(np.array_equal(result, expected),
-                        f'getting all indices failed: expected {expected} but got {result}')
+                        f'creating all indices failed: expected {expected} but got {result}')
+
+    def test_create_wiener_index(self):
+        expected = np.array([4])
+        result = create_wiener_index(self.data_example)
+        self.assertTrue(np.array_equal(result, expected),
+                        f'creating wiener index failed: expected {expected} but got {result}')
+
+    def test_create_wiener_index_empty(self):
+        expected = np.array([0])
+        result = create_wiener_index(self.data_empty)
+        self.assertTrue(np.array_equal(result, expected),
+                        f'creating wiener index failed: expected {expected} but got {result}')
+
+    def test_create_wiener_index_bigger(self):
+        expected = np.array([31])
+        result = create_wiener_index(self.data_example_bigger)
+        self.assertTrue(np.array_equal(result, expected),
+                        f'creating wiener index failed: expected {expected} but got {result}')
+
+    def test_create_randic_index(self):
+        expected = np.array([np.sqrt(2)])
+        result = create_randic_index(self.data_example)
+        self.assertTrue(np.array_equal(result.round(4), expected.round(4)),
+                        f'creating randic index failed: expected {expected.round(4)} but got {result.round(4)}')
+
+    # todo: more randic tests?
 
 
 if __name__ == '__main__':
