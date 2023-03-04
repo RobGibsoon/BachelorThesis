@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from numpy.linalg import LinAlgError
 from utils import torch_to_csr, get_distance_matrix, get_degrees
 from scipy.sparse import csr_matrix
 from torch_geometric.utils import degree, dense_to_sparse, to_dense_adj
@@ -68,7 +69,18 @@ def create_randic_index(graph):
 
 
 def create_estrada_index(graph):
-    return np.array([0])
+    assert graph.is_undirected()
+    adj = to_dense_adj(graph.edge_index).numpy()
+    try:
+        eigenvalues = np.squeeze(np.linalg.eig(adj)[0], axis=0)
+    except LinAlgError:
+        print(LinAlgError.__name__)
+        return np.array([0])  # todo: is there a different option than just returning 0?
+
+    estrada_index = 0
+    for eigenvalue in eigenvalues:
+        estrada_index += np.exp(eigenvalue)
+    return np.array([estrada_index])
 
 
 def create_szeged_index(graph):
@@ -76,10 +88,6 @@ def create_szeged_index(graph):
 
 
 def create_padmakar_ivan_index(graph):
-    return np.array([0])
-
-
-def create_balaban_centric_index(graph):
     return np.array([0])
 
 

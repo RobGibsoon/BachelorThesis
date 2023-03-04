@@ -5,7 +5,7 @@ import networkx as nx
 import numpy as np
 import torch
 from indices import create_zagreb_index, create_basic_descriptors, get_all_indices, create_polarity_number_index, \
-    create_wiener_index, create_randic_index
+    create_wiener_index, create_randic_index, create_estrada_index
 from matplotlib import pyplot as plt
 from torch_geometric.data import Data
 from torch_geometric.utils import to_networkx
@@ -111,6 +111,23 @@ class Test(TestCase):
                         f'creating randic index failed: expected {expected.round(4)} but got {result.round(4)}')
 
     # todo: more randic tests?
+
+    def test_create_estrada_index(self):
+        eigenvalues_example = np.array([np.sqrt(2), -np.sqrt(2), 0])
+        self.help_test_estrada(eigenvalues_example, self.data_example)
+
+    def test_create_estrada_index_bigger(self):
+        eigenvalues_example = np.array([-1.93185, 1.93185, 1, -1, -0.517638, 0.517638])  # eigenvalues calculated with
+                                                                                         # wolfram alpha
+        self.help_test_estrada(eigenvalues_example, self.data_example_bigger)
+
+    def help_test_estrada(self, eigenvalues_example, example):
+        expected = np.array([0.0])
+        for eigenvalue in eigenvalues_example:
+            expected += np.exp(eigenvalue)
+        result = create_estrada_index(example)
+        self.assertTrue(np.array_equal(result.round(4), expected.round(4)),
+                        f'creating estrada index failed: expected {expected.round(4)} but got {result.round(4)}')
 
 
 if __name__ == '__main__':
