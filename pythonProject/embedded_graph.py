@@ -3,7 +3,7 @@ import utils
 from torch_geometric.data import Data
 from indices import create_zagreb_index, create_polarity_nr_index, \
     create_wiener_index, create_randic_index, create_estrada_index, create_balaban_index, create_padmakar_ivan_index, \
-    create_szeged_index, create_narumi_index
+    create_szeged_index, create_narumi_index, create_schultz_index
 
 
 class EmbeddedGraph(Data):
@@ -23,9 +23,9 @@ class EmbeddedGraph(Data):
         if utils.BALABAN in wanted_indices:
             embedding["balaban"] = create_balaban_index(graph)
         if utils.NODES in wanted_indices:
-            embedding["nodes"] = np.array(graph.num_nodes)
+            embedding["nodes"] = np.array([graph.num_nodes])
         if utils.EDGES in wanted_indices:
-            embedding["edges"] = np.array(int(len(graph.edge_index[1]) / 2))
+            embedding["edges"] = np.array([int(len(graph.edge_index[1]) / 2)])
         if utils.ESTRADA in wanted_indices:
             embedding["estrada"] = create_estrada_index(graph)
         if utils.NARUMI in wanted_indices:
@@ -42,5 +42,7 @@ class EmbeddedGraph(Data):
             embedding["wiener"] = create_wiener_index(graph)
         if utils.ZAGREB in wanted_indices:
             embedding["zagreb"] = create_zagreb_index(graph)
+        if utils.SCHULTZ in wanted_indices:
+            embedding["schultz"] = create_schultz_index(graph)
 
         return embedding

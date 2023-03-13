@@ -25,7 +25,7 @@ def create_embedded_graph_set(graph_set, wi):
 
 if __name__ == "__main__":
     dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
-    wanted_indices = [4, 5, 6, 7, 8]
+    wanted_indices = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices)
     for i in [0, 1, 14, 20]:
         print(embedded_graph_set[i].embedding)
