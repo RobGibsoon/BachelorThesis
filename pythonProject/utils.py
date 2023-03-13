@@ -14,6 +14,7 @@ WIENER = 7
 ZAGREB = 8
 NODES = 9
 EDGES = 10
+SCHULTZ = 11
 
 
 def get_degrees(graph):

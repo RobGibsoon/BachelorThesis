@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from indices import create_zagreb_index, create_polarity_nr_index, \
     create_wiener_index, create_randic_index, create_estrada_index, create_balaban_index, create_padmakar_ivan_index, \
-    create_szeged_index
+    create_szeged_index, create_schultz_index
 from torch_geometric.data import Data
 import matplotlib
 
@@ -22,26 +22,34 @@ matplotlib.use('TkAgg')
 class Test(TestCase):
     edge_index_example = torch.tensor([[0, 1, 1, 2],
                                        [1, 0, 2, 1]], dtype=torch.long)
-    x_example = torch.tensor([[-1], [0], [1]], dtype=torch.float)
+    x_example = torch.tensor([[1], [1], [1]], dtype=torch.float)
     edge_index_empty = torch.tensor([[],
                                      []], dtype=torch.long)
     x_empty = torch.tensor([[]], dtype=torch.float)
     edge_index_directed = torch.tensor([[0, 1, 1],
                                         [0, 1, 0]], dtype=torch.long)
     x_directed = torch.tensor([[1], [2]], dtype=torch.float)
+    edge_index_example_pi = torch.tensor([[0, 1, 1, 5, 1, 2, 2, 3, 3, 4, 5, 2],
+                                          [1, 0, 5, 1, 2, 1, 3, 2, 4, 3, 2, 5]], dtype=torch.long)
     edge_index_example_bigger = torch.tensor([[0, 1, 1, 2, 2, 3, 3, 4, 5, 2],
                                               [1, 0, 2, 1, 3, 2, 4, 3, 2, 5]], dtype=torch.long)
-    x_example_bigger = torch.tensor([[-1], [0], [1], [1], [1], [1]], dtype=torch.float)
+    x_example_bigger = torch.tensor([[1], [1], [1], [1], [1], [1]], dtype=torch.float)
 
     ei_balban_test = torch.tensor([[0, 1, 1, 2, 2, 3, 3, 4, 5, 2, 4, 7, 5, 6],
                                    [1, 0, 2, 1, 3, 2, 4, 3, 2, 5, 7, 4, 6, 5]], dtype=torch.long)
-    x_balban_test = torch.tensor([[-1], [0], [1], [1], [1], [1], [1], [1]], dtype=torch.float)
+    x_balban_test = torch.tensor([[1], [1], [1], [1], [1], [1], [1], [1]], dtype=torch.float)
+
+    ei_schultz_test = torch.tensor([[0, 1, 1, 2, 1, 3, 3, 4],
+                                    [1, 0, 2, 1, 3, 1, 4, 3]], dtype=torch.long)
+    x_schultz_test = torch.tensor([[1], [1], [1], [1], [1]], dtype=torch.float)
 
     data_directed = Data(x=x_directed, edge_index=edge_index_directed)
     data_empty = Data(x=x_empty, edge_index=edge_index_empty)
     data_example = Data(x=x_example, edge_index=edge_index_example)
     data_example_bigger = Data(x=x_example_bigger, edge_index=edge_index_example_bigger)
+    data_example_pi = Data(x=x_example_bigger, edge_index=edge_index_example_pi)
     data_balaban_test = Data(x=x_balban_test, edge_index=ei_balban_test)
+    data_schultz = Data(x=x_schultz_test, edge_index=ei_schultz_test)
 
     def test_create_zagreb_index(self):
         expected = np.array([6])
@@ -128,16 +136,22 @@ class Test(TestCase):
                         f'creating balaban index failed: expected {expected} but got {result}')
 
     def test_pi_index(self):
-        expected = np.array([0])  # todo: change 0
-        result = create_padmakar_ivan_index(self.data_example_bigger)
+        expected = np.array([27])
+        result = create_padmakar_ivan_index(self.data_example_pi)
         self.assertTrue(np.isclose(result, expected),
                         f'creating padmakar-ivan index failed: expected {expected} but got {result}')
 
     def test_szeged_index(self):
-        expected = np.array([0])  # todo: change 0
+        expected = np.array([31])
         result = create_szeged_index(self.data_example_bigger)
         self.assertTrue(np.isclose(result, expected),
                         f'creating szeged index failed: expected {expected} but got {result}')
+
+    def test_schultz_index(self):
+        expected = np.array([68])
+        result = create_schultz_index(self.data_schultz)
+        self.assertTrue(np.isclose(result, expected),
+                        f'creating schultz index failed: expected {expected} but got {result}')
 
 
 if __name__ == '__main__':
