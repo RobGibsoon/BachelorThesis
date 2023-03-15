@@ -6,7 +6,8 @@ from torch_geometric.utils import to_dense_adj
 
 
 def create_zagreb_index(graph):
-    """The zagreb index is the sum of the squared degrees of all non-hydrogen atoms of a molecule."""
+    """The zagreb index is the sum of the squared degrees of all non-hydrogen atoms of a molecule.
+    DOI 10.1007/s11464-015-0431-9"""
     assert graph.is_undirected()
     degrees = get_degrees(graph)
     squared_degrees = torch.square(degrees)
@@ -16,7 +17,8 @@ def create_zagreb_index(graph):
 
 
 def create_narumi_index(graph):
-    """The narumi index is the product of the node-degrees of all non-hydrogen atoms."""
+    """The narumi index is the product of the node-degrees of all non-hydrogen atoms.
+    https://doi.org/10.1016/j.aml.2011.12.018"""
     assert graph.is_undirected()
     degrees = get_degrees(graph)
     narumi_index = np.prod(degrees.numpy())
@@ -25,7 +27,8 @@ def create_narumi_index(graph):
 
 def create_polarity_nr_index(graph):
     """The polarity number (a.k.a. Wiener polarity index) is the number of unordered pairs of vertices lying at
-    distance 3 in a graph."""
+    distance 3 in a graph.
+    DOI 10.1002/qua.26627"""
     assert graph.is_undirected()
     dist_matrix = get_distance_matrix(graph)
     count_dist_3 = np.count_nonzero(dist_matrix == 3)
@@ -37,7 +40,8 @@ def create_polarity_nr_index(graph):
 
 def create_wiener_index(graph):
     """the wiener index is defined as the sum of the lengths of the shortest paths between all pairs of nodes in the
-    graph representing non-hydrogen atoms in the molecule """
+    graph representing non-hydrogen atoms in the molecule
+    https://doi.org/10.1016/j.dam.2012.01.014"""
     assert graph.is_undirected()
     dist_matrix = get_distance_matrix(graph)
     wiener_index = np.sum(dist_matrix) / 2
@@ -45,7 +49,8 @@ def create_wiener_index(graph):
 
 
 def create_randic_index(graph):
-    """the randic index is defined by the sum over all edges e=(u,v) of [1/sqrt(deg(u)*deg(v))]"""
+    """the randic index is defined by the sum over all edges e=(u,v) of [1/sqrt(deg(u)*deg(v))]
+    https://doi.org/10.1016/j.akcej.2017.09.006"""
     edge_index = graph.edge_index.t()
     degrees = get_degrees(graph)
     # todo: I may be able to improve this so i don't calculate the index for every edge since they're always double
@@ -59,13 +64,18 @@ def create_randic_index(graph):
 
 
 def create_estrada_index(graph):
+    """
+    estrada index of a graph with n vertices and l_i being the n eigenvalues is defined as
+    the sum_i=1^n e^(l_i)
+    https://doi.org/10.1016/j.laa.2007.06.020
+    """
     assert graph.is_undirected()
     adj = to_dense_adj(graph.edge_index).numpy()
     try:
         eigenvalues = np.squeeze(np.linalg.eig(adj)[0], axis=0)
     except LinAlgError:
         print(LinAlgError.__name__)
-        return np.array([0])  # todo: is there a different option than just returning 0?
+        return np.array([float("NaN")])
 
     estrada_index = 0
     for eigenvalue in eigenvalues:
@@ -81,7 +91,8 @@ def remove_same_edges(edges, idx1, idx2):
 
 
 def create_balaban_index(graph):
-    """balaban-j-index as defined by:  Alexandru T. Balaban: Highly Discriminating Distance-based Topological Index"""
+    """balaban-j-index as defined by:  Alexandru T. Balaban: Highly Discriminating Distance-based Topological Index
+    https://doi.org/10.1016/0009-2614(82)80009-2"""
     assert graph.is_undirected()
     shortest_dist_mat = get_distance_matrix(graph)
     dist_sums = np.sum(shortest_dist_mat, axis=1)
@@ -118,7 +129,8 @@ def number_vertices_closer_to_uv(u, v, shortest_dist_mat):
 
 def create_szeged_index(graph):
     """szeged index is the sum over each edge (u,v) of the product n1(u)*n2(v)
-    where n1(u) is the number of vertices closer to u and n2 respectively closer to v"""
+    where n1(u) is the number of vertices closer to u and n2 respectively closer to v
+    DOI 10.1166/jctn.2011.1681"""
     assert graph.is_undirected()
     shortest_dist_mat = get_distance_matrix(graph)
     edges = graph.edge_index.t().tolist()
@@ -156,7 +168,8 @@ def number_edges_closer_to_uv(edge, edges, shortest_dist_mat):
 
 def create_padmakar_ivan_index(graph):
     """padmakar-ivan index is the sum over each edge (u,v) of the product n1(u)*n2(v)
-        where n1(u) is the number of edges closer to u and n2 respectively closer to v"""
+        where n1(u) is the number of edges closer to u and n2 respectively closer to v
+        DOI 10.1166/jctn.2011.1681"""
     assert graph.is_undirected()
     shortest_dist_mat = get_distance_matrix(graph)
     full_edges = graph.edge_index.t().tolist()
@@ -176,7 +189,12 @@ def create_padmakar_ivan_index(graph):
 def create_schultz_index(graph):
     """The schultz index is the over n vertices: sum_i^n sum_j^n deg(i)*(A_ij+dist(i,j)) I calculate this like so:
     sum_i^n deg(i)* [sum_j^n (A_ij+dist(i,j))] Also since our graph is undirected the adjacency matrix is symmetrical
-    and because there are no loops the A_ii and dist(i,i) entries will always be zero! """
+    and because there are no loops the A_ii and dist(i,i) entries will always be zero!
+
+    Wiener and Schultz Molecular Topological Indices of Graphs with Specified Cut Edges by Hongbo Hua
+    MATCH Commun. Math. Comput. Chem. 61 (2009) 643-651
+    ISSN 0340 - 6253
+    found under link: https://match.pmf.kg.ac.rs/electronic_versions/Match61/n3/match61n3_643-651.pdf"""
     assert graph.is_undirected()
     adj = to_dense_adj(graph.edge_index).numpy()
     degrees = get_degrees(graph).numpy()
