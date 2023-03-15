@@ -84,6 +84,28 @@ def remove_same_edges(edges, idx1, idx2):
     edges.remove([idx2, idx1])
 
 
+# def create_balaban_index(graph):
+#     """balaban-j-index as defined by:  Alexandru T. Balaban: Highly Discriminating Distance-based Topological Index
+#     https://doi.org/10.1016/0009-2614(82)80009-2"""
+#     assert graph.is_undirected()
+#     shortest_dist_mat = get_distance_matrix(graph)
+#     dist_sums = np.sum(shortest_dist_mat, axis=1)
+#     num_nodes = graph.num_nodes
+#     num_edges = int(len(graph.edge_index[1]) / 2)
+#     num_cycles = num_edges - num_nodes + 1  # according to wikipedia
+#
+#     graph.coalesce()  # sort edge_index
+#     edges = graph.edge_index.t().tolist()
+#     sum_dist_neighbours = 0
+#     while len(edges) != 0:
+#         s1 = dist_sums[edges[0][0]]
+#         s2 = dist_sums[edges[0][1]]
+#         sum_dist_neighbours += 1 / np.sqrt(s1 * s2)
+#         idx1 = int(edges[0][0])
+#         idx2 = int(edges[0][1])
+#         remove_same_edges(edges, idx1, idx2)
+#
+#     return np.array([num_edges / (num_cycles + 1) * sum_dist_neighbours])
 def create_balaban_index(graph):
     """balaban-j-index as defined by:  Alexandru T. Balaban: Highly Discriminating Distance-based Topological Index
     https://doi.org/10.1016/0009-2614(82)80009-2"""
@@ -95,30 +117,14 @@ def create_balaban_index(graph):
     num_cycles = num_edges - num_nodes + 1  # according to wikipedia
 
     graph.coalesce()  # sort edge_index
-    edges = graph.edge_index.t().tolist()
+    edges = set(tuple(sorted(edge)) for edge in graph.edge_index.t().tolist())
     sum_dist_neighbours = 0
-    while len(edges) != 0:
-        s1 = dist_sums[edges[0][0]]
-        s2 = dist_sums[edges[0][1]]
+    for edge in edges:
+        s1 = dist_sums[edge[0]]
+        s2 = dist_sums[edge[1]]
         sum_dist_neighbours += 1 / np.sqrt(s1 * s2)
-        idx1 = int(edges[0][0])
-        idx2 = int(edges[0][1])
-        remove_same_edges(edges, idx1, idx2)
 
     return np.array([num_edges / (num_cycles + 1) * sum_dist_neighbours])
-
-
-def number_vertices_closer_to_uv(u, v, shortest_dist_mat):
-    n1 = 0
-    n2 = 0
-    # todo: maybe i can improve this by not using for loop
-    for w in range(len(shortest_dist_mat)):
-        if shortest_dist_mat[w][u] < shortest_dist_mat[w][v]:
-            n1 += 1
-        if shortest_dist_mat[w][u] > shortest_dist_mat[w][v]:
-            n2 += 1
-
-    return n1, n2
 
 
 def create_szeged_index(graph):
@@ -127,25 +133,18 @@ def create_szeged_index(graph):
     DOI 10.1166/jctn.2011.1681"""
     assert graph.is_undirected()
     shortest_dist_mat = get_distance_matrix(graph)
-    edges = graph.edge_index.t().tolist()
-    szeged_index = 0
-    while len(edges) != 0:
-        u = edges[0][0]
-        v = edges[0][1]
-        n1, n2 = number_vertices_closer_to_uv(u, v, shortest_dist_mat)
-        szeged_index += n1 * n2
-        idx1 = int(edges[0][0])
-        idx2 = int(edges[0][1])
-        remove_same_edges(edges, idx1, idx2)
-    return np.array([szeged_index])
+    edges = graph.edge_index.t()
+    n1 = np.sum(shortest_dist_mat[edges[:, 0]] < shortest_dist_mat[edges[:, 1]], axis=1)
+    n2 = np.sum(shortest_dist_mat[edges[:, 0]] > shortest_dist_mat[edges[:, 1]], axis=1)
+    szeged_index = np.sum(n1 * n2)
+    return np.array([szeged_index/2])
 
 
 def number_edges_closer_to_uv(edge, edges, shortest_dist_mat):
     n1, n2 = 0, 0
     u, v = edge[0], edge[1]
     copy = edges.copy()
-    remove_same_edges(copy, u, v)
-    copy = np.array(copy)
+    copy.discard(edge)
     for edge_iter in copy:
         a, b = edge_iter[0], edge_iter[1]
         if shortest_dist_mat[a, u] == shortest_dist_mat[a, v] and \
@@ -157,8 +156,7 @@ def number_edges_closer_to_uv(edge, edges, shortest_dist_mat):
         if min(shortest_dist_mat[a, v], shortest_dist_mat[b, v]) < \
                 min(shortest_dist_mat[a, u], shortest_dist_mat[b, u]):
             n2 += 1
-    return n1 / 2, n2 / 2
-
+    return n1, n2
 
 def create_padmakar_ivan_index(graph):
     """padmakar-ivan index is the sum over each edge (u,v) of the product n1(u)*n2(v)
@@ -166,17 +164,11 @@ def create_padmakar_ivan_index(graph):
         DOI 10.1166/jctn.2011.1681"""
     assert graph.is_undirected()
     shortest_dist_mat = get_distance_matrix(graph)
-    full_edges = graph.edge_index.t().tolist()
-    edges = full_edges.copy()
+    edges = set(tuple(sorted(edge)) for edge in graph.edge_index.t().tolist())
     padmakar_ivan_index = 0
-    while len(edges) != 0:
-        edge = edges[0]
-        n1, n2 = number_edges_closer_to_uv(edge, full_edges, shortest_dist_mat)
+    for edge in edges:
+        n1, n2 = number_edges_closer_to_uv(edge, edges, shortest_dist_mat)
         padmakar_ivan_index += n1 + n2
-
-        idx1 = int(edges[0][0])
-        idx2 = int(edges[0][1])
-        remove_same_edges(edges, idx1, idx2)
     return np.array([int(padmakar_ivan_index)])
 
 
