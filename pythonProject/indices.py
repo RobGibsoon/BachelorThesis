@@ -48,13 +48,9 @@ def create_randic_index(graph):
     """the randic index is defined by the sum over all edges e=(u,v) of [1/sqrt(deg(u)*deg(v))]"""
     edge_index = graph.edge_index.t()
     degrees = get_degrees(graph)
-    # todo: I may be able to improve this so i don't calculate the index for every edge since they're always double
-    randic_index = 0
-    for edge in edge_index:
-        degree_u = degrees[edge[0]]
-        degree_v = degrees[edge[1]]
-        randic_index += 1 / np.sqrt(degree_u.numpy() * degree_v.numpy())
-
+    degree_u = degrees[edge_index.T[0]]
+    degree_v = degrees[edge_index.T[1]]
+    randic_index = torch.sum(1 / torch.sqrt(torch.mul(degree_u, degree_v)))
     return np.array([randic_index / 2])
 
 
