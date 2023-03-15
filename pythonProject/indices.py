@@ -73,9 +73,7 @@ def create_estrada_index(graph):
         print(LinAlgError.__name__)
         return np.array([float("NaN")])
 
-    estrada_index = 0
-    for eigenvalue in eigenvalues:
-        estrada_index += np.exp(eigenvalue)
+    estrada_index = np.sum(np.exp(eigenvalues))
     return np.array([estrada_index])
 
 
@@ -197,9 +195,5 @@ def create_schultz_index(graph):
     shortest_dist_mat = get_distance_matrix(graph)
     adj_short = np.sum(np.squeeze(adj + shortest_dist_mat), axis=1)
     assert adj_short.shape == degrees.shape
-
-    schultz_index = 0
-    for i in range(len(degrees)):
-        schultz_index += degrees[i] * adj_short[i]
-
+    schultz_index = np.sum(degrees*adj_short)
     return np.array([int(schultz_index)])
