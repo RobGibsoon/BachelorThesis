@@ -31,6 +31,7 @@ def create_dataset(embedded_graphs, wi, dataset_name):
 
 def set_columns_and_df_content(data, columns, wi, embedded_graphs):
     wanted_indices = wi
+    labels = []
     balaban = []
     nodes = []
     edges = []
@@ -44,6 +45,7 @@ def set_columns_and_df_content(data, columns, wi, embedded_graphs):
     zagreb = []
     schultz = []
     for g in embedded_graphs:
+        labels.append(g.y.numpy())
         if utils.BALABAN in wanted_indices:
             balaban.append(g.embedding["balaban"])
         if utils.NODES in wanted_indices:
@@ -69,6 +71,8 @@ def set_columns_and_df_content(data, columns, wi, embedded_graphs):
         if utils.SCHULTZ in wanted_indices:
             schultz.append(g.embedding["schultz"])
 
+    columns.append('labels')
+    data["labels"] = labels
     if utils.BALABAN in wanted_indices:
         data["balaban"] = balaban
         columns.append('balaban')
