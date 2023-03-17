@@ -51,6 +51,10 @@ class Test(TestCase):
     data_balaban_test = Data(x=x_balban_test, edge_index=ei_balban_test)
     data_schultz = Data(x=x_schultz_test, edge_index=ei_schultz_test)
 
+    def test_num_edges(self):
+        self.assertTrue(self.data_directed.num_edges, 3)
+        self.assertTrue(self.data_example.num_edges, 2)
+
     def test_create_zagreb_index(self):
         expected = np.array([6])
         result = create_zagreb_index(self.data_example)

@@ -1,5 +1,6 @@
 import numpy as np
-import utils
+from utils import BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES, EDGES, \
+    SCHULTZ
 from torch_geometric.data import Data
 from indices import create_zagreb_index, create_polarity_nr_index, \
     create_wiener_index, create_randic_index, create_estrada_index, create_balaban_index, create_padmakar_ivan_index, \
@@ -20,29 +21,29 @@ class EmbeddedGraph(Data):
     def set_embedding(self, graph, wanted_indices):
         """wanted_indices is a list with the names of which indices we want in the embedding"""
         embedding = {}
-        if utils.BALABAN in wanted_indices:
+        if BALABAN in wanted_indices:
             embedding["balaban"] = create_balaban_index(graph)
-        if utils.NODES in wanted_indices:
-            embedding["nodes"] = np.array([graph.num_nodes])
-        if utils.EDGES in wanted_indices:
-            embedding["edges"] = np.array([int(len(graph.edge_index[1]) / 2)])
-        if utils.ESTRADA in wanted_indices:
+        if NODES in wanted_indices:
+            embedding["nodes"] = np.array(graph.num_nodes)
+        if EDGES in wanted_indices:
+            embedding["edges"] = np.array(int(len(graph.edge_index[1]) / 2))
+        if ESTRADA in wanted_indices:
             embedding["estrada"] = create_estrada_index(graph)
-        if utils.NARUMI in wanted_indices:
+        if NARUMI in wanted_indices:
             embedding["narumi"] = create_narumi_index(graph)
-        if utils.PADMAKAR_IVAN in wanted_indices:
+        if PADMAKAR_IVAN in wanted_indices:
             embedding["padmakar_ivan"] = create_padmakar_ivan_index(graph)
-        if utils.POLARITY_NR in wanted_indices:
+        if POLARITY_NR in wanted_indices:
             embedding["polarity_nr"] = create_polarity_nr_index(graph)
-        if utils.RANDIC in wanted_indices:
+        if RANDIC in wanted_indices:
             embedding["randic"] = create_randic_index(graph)
-        if utils.SZEGED in wanted_indices:
+        if SZEGED in wanted_indices:
             embedding["szeged"] = create_szeged_index(graph)
-        if utils.WIENER in wanted_indices:
+        if WIENER in wanted_indices:
             embedding["wiener"] = create_wiener_index(graph)
-        if utils.ZAGREB in wanted_indices:
+        if ZAGREB in wanted_indices:
             embedding["zagreb"] = create_zagreb_index(graph)
-        if utils.SCHULTZ in wanted_indices:
+        if SCHULTZ in wanted_indices:
             embedding["schultz"] = create_schultz_index(graph)
 
         return embedding

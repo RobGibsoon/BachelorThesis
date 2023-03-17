@@ -13,7 +13,7 @@ def create_zagreb_index(graph):
     squared_degrees = torch.square(degrees)
     zagreb_index = torch.sum(squared_degrees).item()
     assert zagreb_index % 1 == 0
-    return np.array([int(zagreb_index)])
+    return np.array(int(zagreb_index))
 
 
 def create_narumi_index(graph):
@@ -22,7 +22,7 @@ def create_narumi_index(graph):
     assert graph.is_undirected()
     degrees = get_degrees(graph)
     narumi_index = np.prod(degrees.numpy())
-    return np.array([int(narumi_index)])
+    return np.array(int(narumi_index))
 
 
 def create_polarity_nr_index(graph):
@@ -35,7 +35,7 @@ def create_polarity_nr_index(graph):
     assert count_dist_3 % 2 == 0  # since we look at an undirected graph we always expect pairs of nodes to have
     # distance 3
     polarity_nr = count_dist_3 / 2
-    return np.array([int(polarity_nr)])
+    return np.array(int(polarity_nr))
 
 
 def create_wiener_index(graph):
@@ -45,7 +45,7 @@ def create_wiener_index(graph):
     assert graph.is_undirected()
     dist_matrix = get_distance_matrix(graph)
     wiener_index = np.sum(dist_matrix) / 2
-    return np.array([int(wiener_index)])
+    return np.array(int(wiener_index))
 
 
 def create_randic_index(graph):
@@ -56,7 +56,7 @@ def create_randic_index(graph):
     degree_u = degrees[edge_index.T[0]]
     degree_v = degrees[edge_index.T[1]]
     randic_index = torch.sum(1 / torch.sqrt(torch.mul(degree_u, degree_v)))
-    return np.array([randic_index / 2])
+    return np.array(randic_index / 2)
 
 
 def create_estrada_index(graph):
@@ -64,17 +64,24 @@ def create_estrada_index(graph):
     estrada index of a graph with n vertices and l_i being the n eigenvalues is defined as
     the sum_i=1^n e^(l_i)
     https://doi.org/10.1016/j.laa.2007.06.020
+    It can be estimated as seen in https://doi.org/10.1016/j.cplett.2007.08.053
     """
     assert graph.is_undirected()
     adj = to_dense_adj(graph.edge_index).numpy()
     try:
-        eigenvalues = np.squeeze(np.linalg.eig(adj)[0], axis=0)
+        eigenvalues = np.squeeze(np.linalg.eigvals(adj), axis=0)
     except LinAlgError:
         print(LinAlgError.__name__)
         return np.array([float("NaN")])
-
     estrada_index = np.sum(np.exp(eigenvalues))
-    return np.array([estrada_index])
+
+    if np.iscomplexobj(estrada_index):
+        num_edges = graph.num_edges
+        num_nodes = graph.num_nodes
+        k = np.sqrt(6*num_edges/num_nodes)
+        estrada_index = num_nodes/2 * (np.exp(k)-np.exp(-k)/k)
+        assert not np.iscomplex(estrada_index)
+    return np.array(estrada_index)
 
 
 def remove_same_edges(edges, idx1, idx2):
@@ -84,28 +91,6 @@ def remove_same_edges(edges, idx1, idx2):
     edges.remove([idx2, idx1])
 
 
-# def create_balaban_index(graph):
-#     """balaban-j-index as defined by:  Alexandru T. Balaban: Highly Discriminating Distance-based Topological Index
-#     https://doi.org/10.1016/0009-2614(82)80009-2"""
-#     assert graph.is_undirected()
-#     shortest_dist_mat = get_distance_matrix(graph)
-#     dist_sums = np.sum(shortest_dist_mat, axis=1)
-#     num_nodes = graph.num_nodes
-#     num_edges = int(len(graph.edge_index[1]) / 2)
-#     num_cycles = num_edges - num_nodes + 1  # according to wikipedia
-#
-#     graph.coalesce()  # sort edge_index
-#     edges = graph.edge_index.t().tolist()
-#     sum_dist_neighbours = 0
-#     while len(edges) != 0:
-#         s1 = dist_sums[edges[0][0]]
-#         s2 = dist_sums[edges[0][1]]
-#         sum_dist_neighbours += 1 / np.sqrt(s1 * s2)
-#         idx1 = int(edges[0][0])
-#         idx2 = int(edges[0][1])
-#         remove_same_edges(edges, idx1, idx2)
-#
-#     return np.array([num_edges / (num_cycles + 1) * sum_dist_neighbours])
 def create_balaban_index(graph):
     """balaban-j-index as defined by:  Alexandru T. Balaban: Highly Discriminating Distance-based Topological Index
     https://doi.org/10.1016/0009-2614(82)80009-2"""
@@ -113,7 +98,7 @@ def create_balaban_index(graph):
     shortest_dist_mat = get_distance_matrix(graph)
     dist_sums = np.sum(shortest_dist_mat, axis=1)
     num_nodes = graph.num_nodes
-    num_edges = int(len(graph.edge_index[1]) / 2)
+    num_edges = graph.num_edges
     num_cycles = num_edges - num_nodes + 1  # according to wikipedia
 
     graph.coalesce()  # sort edge_index
@@ -124,7 +109,7 @@ def create_balaban_index(graph):
         s2 = dist_sums[edge[1]]
         sum_dist_neighbours += 1 / np.sqrt(s1 * s2)
 
-    return np.array([num_edges / (num_cycles + 1) * sum_dist_neighbours])
+    return np.array(num_edges / (num_cycles + 1) * sum_dist_neighbours)
 
 
 def create_szeged_index(graph):
@@ -137,7 +122,7 @@ def create_szeged_index(graph):
     n1 = np.sum(shortest_dist_mat[edges[:, 0]] < shortest_dist_mat[edges[:, 1]], axis=1)
     n2 = np.sum(shortest_dist_mat[edges[:, 0]] > shortest_dist_mat[edges[:, 1]], axis=1)
     szeged_index = np.sum(n1 * n2)
-    return np.array([szeged_index/2])
+    return np.array(szeged_index/2)
 
 
 def number_edges_closer_to_uv(edge, edges, shortest_dist_mat):
@@ -169,7 +154,7 @@ def create_padmakar_ivan_index(graph):
     for edge in edges:
         n1, n2 = number_edges_closer_to_uv(edge, edges, shortest_dist_mat)
         padmakar_ivan_index += n1 + n2
-    return np.array([int(padmakar_ivan_index)])
+    return np.array(int(padmakar_ivan_index))
 
 
 def create_schultz_index(graph):
@@ -188,4 +173,4 @@ def create_schultz_index(graph):
     adj_short = np.sum(np.squeeze(adj + shortest_dist_mat), axis=1)
     assert adj_short.shape == degrees.shape
     schultz_index = np.sum(degrees*adj_short)
-    return np.array([int(schultz_index)])
+    return np.array(int(schultz_index))
