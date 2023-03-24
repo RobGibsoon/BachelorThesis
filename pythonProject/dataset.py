@@ -10,23 +10,22 @@ import pandas as pd
 matplotlib.use('TkAgg')
 
 
-def create_embedded_graph_set(graph_set, wi):
+def create_embedded_graph_set(dataset, wanted_indices):
     embedded_graphs = []
-    for j in range(len(graph_set)):
-        g = EmbeddedGraph(dataset[j], wanted_indices=wi)
+    for i in range(len(dataset)):
+        g = EmbeddedGraph(dataset[i], wanted_indices=wanted_indices)
         embedded_graphs.append(g)
 
     return embedded_graphs
 
 
-def create_dataset(embedded_graphs, wi, dataset_name):
+def create_dataset(embedded_graph_set, wanted_indices, dataset_name):
     data = {}
-    set_df_content(data, wi, embedded_graphs)
+    set_df_content(data, wanted_indices, embedded_graph_set)
     create_df_and_save_to_csv(data, dataset_name)
 
 
-def set_df_content(data, wi, embedded_graphs):
-    wanted_indices = wi
+def set_df_content(data, wanted_indices, embedded_graph_set):
     labels = []
     balaban = []
     nodes = []
@@ -40,7 +39,7 @@ def set_df_content(data, wi, embedded_graphs):
     wiener = []
     zagreb = []
     schultz = []
-    for g in embedded_graphs:
+    for g in embedded_graph_set:
         labels.append(g.y.item())
         if BALABAN in wanted_indices:
             balaban.append(g.embedding["balaban"])
