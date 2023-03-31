@@ -138,34 +138,31 @@ class EmbeddingClassifier:
 
 
 if __name__ == "__main__":
-    dataset_name = "PTC_MR"
-    embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=True)
-    acc = embedding_classifier.predict_ann()
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--dn', type=str, help='The name of the dataset to be classified.')
-    # parser.add_argument('--clf', type=str, default='knn', help='Which classifier model should be used. Choose '
-    #                                                            'between: svm, knn or ann')
-    # parser.add_argument('--fs', default=False, help='Whether the feature selection is wished. Default is true')
-    #
-    # args = parser.parse_args()
-    # if args.dn is None:
-    #     raise argparse.ArgumentError(None, "Please enter the required arguments: --dn, --clf and optionally --fs")
-    #
-    # dataset_name = args.dn
-    # feature_selection = args.fs
-    # clf_model = args.clf
-    # embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=feature_selection)
-    #
-    # if clf_model.lower() == 'knn':
-    #     acc = embedding_classifier.predict_knn()
-    #     print(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}")
-    # elif clf_model.lower() == 'svm':
-    #     acc = embedding_classifier.predict_svm()
-    #     print(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}")
-    # elif clf_model.lower() == 'ann':
-    #     acc = embedding_classifier.predict_ann()
-    #     print(f"Accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {acc}")
-    # else:
-    #     raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
-    #
-    # print(f"Used feature selection: {False if feature_selection == False else True}")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dn', type=str, help='The name of the dataset to be classified.')
+    parser.add_argument('--clf', type=str, default='knn', help='Which classifier model should be used. Choose '
+                                                               'between: svm, knn or ann')
+    parser.add_argument('--fs', default=False, help='Whether the feature selection is wished. Default is true')
+
+    args = parser.parse_args()
+    if args.dn is None:
+        raise argparse.ArgumentError(None, "Please enter the required arguments: --dn, --clf and optionally --fs")
+
+    dataset_name = args.dn
+    feature_selection = args.fs
+    clf_model = args.clf
+    embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=feature_selection)
+
+    if clf_model.lower() == 'knn':
+        acc = embedding_classifier.predict_knn()
+        print(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}")
+    elif clf_model.lower() == 'svm':
+        acc = embedding_classifier.predict_svm()
+        print(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}")
+    elif clf_model.lower() == 'ann':
+        acc = embedding_classifier.predict_ann()
+        print(f"Accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {acc}")
+    else:
+        raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
+
+    print(f"Used feature selection: {False if feature_selection == False else True}")
