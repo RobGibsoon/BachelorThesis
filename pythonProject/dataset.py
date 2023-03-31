@@ -12,10 +12,21 @@ matplotlib.use('TkAgg')
 
 def create_embedded_graph_set(dataset, wanted_indices):
     embedded_graphs = []
+    successful_count = 0
+    unsuccessful_count = 0
     for i in range(len(dataset)):
-        g = EmbeddedGraph(dataset[i], wanted_indices=wanted_indices)
-        embedded_graphs.append(g)
-
+        if i % 50 == 0:
+            print(f'Successfully Embedded {successful_count}/{len(dataset)} graphs')
+            print(f'Failed embedding on {unsuccessful_count}/{len(dataset)} graphs')
+        try:
+            g = EmbeddedGraph(dataset[i], wanted_indices=wanted_indices)
+            embedded_graphs.append(g)
+            successful_count += 1
+        except Exception as e:
+            print(e)
+            unsuccessful_count += 1
+    print(f'Finished embedding with successfully on {successful_count}/{len(dataset)} graphs but failed on '
+          f'{unsuccessful_count}/{len(dataset)} graphs')
     return embedded_graphs
 
 
@@ -97,13 +108,13 @@ def set_df_content(data, wanted_indices, embedded_graph_set):
 def create_df_and_save_to_csv(data, dataset_name):
     df = pd.DataFrame(data)
     print(df)
-    if not exists(f'C:/Users/Robin/BachelorThesis/BachelorThesis/embedded_{dataset_name}.csv'):
-        df.to_csv(f'C:/Users/Robin/BachelorThesis/BachelorThesis/embedded_{dataset_name}.csv', index=False)
+    if not exists(f'../embedded_{dataset_name}.csv'):
+        df.to_csv(f'../embedded_{dataset_name}.csv', index=False)
     else:
         i = 0
-        while exists(f'C:/Users/Robin/BachelorThesis/BachelorThesis/embedded_{dataset_name}_{i}.csv'):
+        while exists(f'../embedded_{dataset_name}_{i}.csv'):
             i += 1
-        df.to_csv(f'C:/Users/Robin/BachelorThesis/BachelorThesis/embedded_{dataset_name}_{i}.csv', index=False)
+        df.to_csv(f'../embedded_{dataset_name}_{i}.csv', index=False)
 
 
 if __name__ == "__main__":
@@ -113,4 +124,3 @@ if __name__ == "__main__":
                       EDGES, SCHULTZ]
     embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices)
     create_dataset(embedded_graph_set, wanted_indices, dataset_name)
-    print(embedded_graph_set[3].embedding['estrada'])

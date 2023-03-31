@@ -12,11 +12,8 @@ class EmbeddedGraph(Data):
 
     def __init__(self, data, wanted_indices, **kwargs):
         super().__init__(x=data.x, edge_index=data.edge_index, y=data.y, **kwargs)
-        try:
-            self.embedding = self.set_embedding(data, wanted_indices)
-        except:
-            raise Exception("Something went wrong when trying to get the embedding for this graph: ",
-                            Exception.__name__)
+        self.embedding = self.set_embedding(data, wanted_indices)
+        self.embedding = self.set_embedding(data, wanted_indices)
 
     def set_embedding(self, graph, wanted_indices):
         """wanted_indices is a list with the names of which indices we want in the embedding"""
