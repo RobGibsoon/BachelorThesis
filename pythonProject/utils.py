@@ -1,9 +1,9 @@
-from itertools import chain
+from itertools import chain, combinations
 
 import numpy as np
 import torch
 from scipy.sparse import csr_matrix
-from torch import combinations
+# from torch import combinations
 from torch_geometric.utils import to_dense_adj, degree
 from scipy.sparse.csgraph import dijkstra
 
@@ -48,7 +48,8 @@ def get_distance_matrix(graph):
 
 def all_subsets(indices_list):
     """returns all possible combinations of sets of indices"""
-    return chain(*map(lambda x: combinations(torch.from_numpy(indices_list), x), range(0, len(indices_list) + 1)))
+    return chain(*map(lambda x: combinations(indices_list, x), range(1, len(indices_list) + 1)))
+
 
 
 def get_feature_names(feature_subset):

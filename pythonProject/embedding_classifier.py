@@ -29,7 +29,7 @@ class EmbeddingClassifier:
     def __init__(self, dataset_name, feature_selection):
         self.dataset_name = dataset_name
         self.feature_selection = feature_selection
-        self.data = pd.read_csv(f'C:/Users/Robin/BachelorThesis/BachelorThesis/embedded_{dataset_name}.csv')
+        self.data = pd.read_csv(f'embedded_{dataset_name}.csv')
         shape = self.data.shape
         print(f'The dataframe has been read and is of shape {shape[0]}x{shape[1]}')
         print(f'The dataframe has a total of {self.data.isnull().sum().sum()} NaN values.')
@@ -148,6 +148,7 @@ def get_best_feature_set(clf, X_train, y):
     """returns the best set for classifying using an SVM/KNN clf, uses cross-validation and takes the set with the
     highest mean accuracy"""
     n_features = X_train.shape[1]
+    # n_features = 5
     best_score = -np.inf
     best_subset = None
     count = 1
@@ -166,8 +167,8 @@ def get_best_feature_set(clf, X_train, y):
             print(f'subset {count}/{2 ** n_features - 1}')
             count += 1
 
-    print(f"best_subset: {best_subset.numpy()} with best score: {best_score}")
-    return best_subset.numpy(), best_score
+    print(f"best_subset: {np.array(subset)} with best score: {best_score}")
+    return np.array(subset), best_score
 
 
 def feature_selected_sets(clf, X_train, X_test, y):
@@ -201,6 +202,7 @@ if __name__ == "__main__":
 
     dataset_name = args.dn
     feature_selection = args.fs
+    print(feature_selection)
     clf_model = args.clf
     embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=feature_selection)
 
