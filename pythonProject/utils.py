@@ -1,5 +1,6 @@
 from itertools import chain, combinations
 
+import networkx as nx
 import numpy as np
 import torch
 from scipy.sparse import csr_matrix
@@ -31,6 +32,23 @@ def get_degrees(graph):
     edge_index = graph.edge_index[0]
     num_nodes = graph.num_nodes
     return degree(edge_index, num_nodes)
+
+
+def is_connected(graph):
+    """this returns True if the graph is connected and False otherwise"""
+    G = nx.Graph()
+    G.add_nodes_from(range(graph.num_nodes))
+    G.add_edges_from(graph.edge_index.t().tolist())
+
+    # Check if the graph is connected
+    connected = nx.is_connected(G)
+    return connected
+
+def log(text, dir):
+    """used to print all the print statements into a log.txt file"""
+    with open(f'log/{dir}/log.txt', mode='a') as file:
+        file.write(text+"\n")
+    file.close()
 
 
 def get_distance_matrix(graph):
