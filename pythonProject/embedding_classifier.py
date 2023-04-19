@@ -18,11 +18,12 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from torch import nn
 from torch.utils.data import DataLoader
-from utils import NP_SEED, get_feature_names, all_subsets
+from utils import NP_SEED, get_feature_names, all_subsets, log
 
 matplotlib.use('TkAgg')
 
 np.random.seed(NP_SEED)
+DIR = "embedding_classifier"
 
 
 class EmbeddingClassifier:
@@ -31,9 +32,9 @@ class EmbeddingClassifier:
         self.feature_selection = feature_selection
         self.data = pd.read_csv(f'embedded_{dataset_name}.csv')
         shape = self.data.shape
-        print(f'The dataframe has been read and is of shape {shape[0]}x{shape[1]}')
-        print(f'The dataframe has a total of {self.data.isnull().sum().sum()} NaN values.')
-        print(f'Data read successfully. See head: \n {self.data.head()}')
+        log(f'The dataframe has been read and is of shape {shape[0]}x{shape[1]}', DIR)
+        log(f'The dataframe has a total of {self.data.isnull().sum().sum()} NaN values.', DIR)
+        log(f'Data read successfully. See head: \n {self.data.head()}', DIR)
 
         self.y = self.data['labels'].values
         self.X = self.data.drop('labels', axis=1).values.astype(float)
@@ -70,7 +71,7 @@ class EmbeddingClassifier:
         clf_knn.fit(clf_X_train, self.y_train)
         grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1)
         grid_search.fit(clf_X_train, self.y_train)
-        print(f"The optimal hyper parameters selected for {type(clf_knn).__name__} were: {grid_search.best_params_}")
+        append_hyperparams(self.feature_selection, grid_search, clf_knn)
 
         # construct, train optimal model and perform predictions
         knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
@@ -100,7 +101,7 @@ class EmbeddingClassifier:
         grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
                                    return_train_score=False, verbose=1)
         grid_search.fit(clf_X_train, self.y_train)
-        print(f"The optimal hyper parameters selected for {type(clf_svm).__name__} were: {grid_search.best_params_}")
+        append_hyperparams(self.feature_selection, grid_search, clf_svm)
 
         # construct, train optimal model and perform predictions
         clf_svm = SVC(C=grid_search.best_params_['C'],
@@ -137,13 +138,6 @@ class EmbeddingClassifier:
         return accuracy
 
 
-def save_preds(preds, labels, clf, dataset_name, feature_selection):
-    """saves labels and predictions to a csv-file"""
-    data = {"preds": preds, "labels": labels}
-    df = pd.DataFrame(data)
-    df.to_csv(f'predictions/preds_labels_{clf}_{dataset_name}_fs{feature_selection}.csv', index=False)
-
-
 def get_best_feature_set(clf, X_train, y):
     """returns the best set for classifying using an SVM/KNN clf, uses cross-validation and takes the set with the
     highest mean accuracy"""
@@ -157,17 +151,17 @@ def get_best_feature_set(clf, X_train, y):
             score = cross_val_score(clf, np.reshape(X_train[:, subset], (X_train.shape[0], -1)), y, cv=5).mean()
             if score > best_score:
                 best_score, best_subset = score, subset
-            print(f'subset {count}/{2 ** n_features - 1}')
+            log(f'subset {count}/{2 ** n_features - 1}', DIR)
             count += 1
     else:
         for subset in all_subsets(np.arange(n_features)):
             score = mean_score_ann(np.reshape(X_train[:, subset], (X_train.shape[0], -1)), y)
             if score > best_score:
                 best_score, best_subset = score, subset
-            print(f'subset {count}/{2 ** n_features - 1}')
+            log(f'subset {count}/{2 ** n_features - 1}', DIR)
             count += 1
 
-    print(f"best_subset: {np.array(subset)} with best score: {best_score}")
+    log(f"best_subset: {np.array(subset)} with best score: {best_score}", DIR)
     return np.array(subset), best_score
 
 
@@ -175,21 +169,44 @@ def feature_selected_sets(clf, X_train, X_test, y):
     """returns the modified training and test sets after performing feature selection on them"""
     best_subset, best_score = get_best_feature_set(clf, X_train, y)
     features = get_feature_names(best_subset)
-    print(f"The optimal features selected for {type(clf).__name__} were: {features}")
+    append_features(clf, features)
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
     return X_train_fs, X_test_fs
 
 
+def append_features(clf, features):
+    with open('log/features/features.txt', mode='a') as file:
+        file.write(f"The optimal features selected for {type(clf).__name__} were: {features}\n")
+    file.close()
+    log(f"The optimal features selected for {type(clf).__name__} were: {features}", DIR)
+
+
 def append_accuracies(dn, clf, fs, acc):
-    with open('accuracies.txt', mode='a') as file:
+    with open('log/accuracies/accuracies.txt', mode='a') as file:
         file.write(f'Accuracy for {dn} {clf} fs={fs}: {acc}\n')
     file.close()
+    log(f'Accuracy for {dn} {clf} fs={fs}: {acc}\n', DIR)
 
+
+def append_hyperparams(feature_selection, grid_search, clf):
+    with open('log/hyperparameters/hyperparameters.txt', mode='a') as file:
+        file.write(f"The optimal hyperparameters selected for {type(clf).__name__} and fs = "
+                   f"{feature_selection} were: {grid_search.best_params_}\n")
+    file.close()
+    log(f"The optimal hyperparameters selected for {type(clf).__name__} were: {grid_search.best_params_}", DIR)
+
+
+def save_preds(preds, labels, clf, dn, fs):
+    """saves labels and predictions to a csv-file"""
+    data = {"preds": preds, "labels": labels}
+    df = pd.DataFrame(data)
+    df.to_csv(f'log/predictions/preds_labels_{clf}_{dn}_fs{fs}.csv', index=False)
 
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--dn', type=str, help='The name of the dataset to be classified.')
     parser.add_argument('--clf', type=str, default='knn', help='Which classifier model should be used. Choose '
@@ -202,23 +219,22 @@ if __name__ == "__main__":
 
     dataset_name = args.dn
     feature_selection = args.fs
-    print(feature_selection)
     clf_model = args.clf
     embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=feature_selection)
 
     if clf_model.lower() == 'knn':
         acc = embedding_classifier.predict_knn()
-        print(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}")
+        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
         append_accuracies(dataset_name, clf_model, feature_selection, acc)
     elif clf_model.lower() == 'svm':
         acc = embedding_classifier.predict_svm()
-        print(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}")
+        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
         append_accuracies(dataset_name, clf_model, feature_selection, acc)
     elif clf_model.lower() == 'ann':
         acc = embedding_classifier.predict_ann()
-        print(f"Accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {acc}")
+        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {acc}", DIR)
         append_accuracies(dataset_name, clf_model, feature_selection, acc)
     else:
         raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
 
-    print(f"Used feature selection: {False if feature_selection == False else True}")
+    log(f"Used feature selection: {False if feature_selection == False else True}", DIR)

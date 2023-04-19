@@ -1,14 +1,14 @@
 from os.path import exists
 
 from utils import BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES, EDGES, \
-    SCHULTZ
+    SCHULTZ, is_connected, log
 from embedded_graph import EmbeddedGraph
 from torch_geometric.datasets import TUDataset
 import matplotlib
 import pandas as pd
 
 matplotlib.use('TkAgg')
-
+DIR = "dataset"
 
 def create_embedded_graph_set(dataset, wanted_indices):
     embedded_graphs = []
@@ -16,17 +16,18 @@ def create_embedded_graph_set(dataset, wanted_indices):
     unsuccessful_count = 0
     for i in range(len(dataset)):
         if i % 50 == 0:
-            print(f'Successfully Embedded {successful_count}/{len(dataset)} graphs')
-            print(f'Failed embedding on {unsuccessful_count}/{len(dataset)} graphs')
+            log(f'Successfully Embedded {successful_count}/{len(dataset)} graphs', DIR)
+            log(f'Failed embedding on {unsuccessful_count}/{len(dataset)} graphs', DIR)
         try:
             g = EmbeddedGraph(dataset[i], wanted_indices=wanted_indices)
             embedded_graphs.append(g)
             successful_count += 1
         except Exception as e:
-            print(e)
+            log(e, dir)
+            assert not is_connected(dataset[i])
             unsuccessful_count += 1
-    print(f'Finished embedding with successfully on {successful_count}/{len(dataset)} graphs but failed on '
-          f'{unsuccessful_count}/{len(dataset)} graphs')
+    log(f'Finished embedding with successfully on {successful_count}/{len(dataset)} graphs but failed on '
+          f'{unsuccessful_count}/{len(dataset)} graphs', DIR)
     return embedded_graphs
 
 
@@ -107,7 +108,7 @@ def set_df_content(data, wanted_indices, embedded_graph_set):
 
 def create_df_and_save_to_csv(data, dataset_name):
     df = pd.DataFrame(data)
-    print(df)
+    print(df, DIR)
     if not exists(f'../embedded_{dataset_name}.csv'):
         df.to_csv(f'../embedded_{dataset_name}.csv', index=False)
     else:
@@ -118,7 +119,7 @@ def create_df_and_save_to_csv(data, dataset_name):
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
+    dataset = TUDataset(root='/tmp/PTC_MR', name='Mutagenicity')
     dataset_name = dataset.name
     wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
                       EDGES, SCHULTZ]

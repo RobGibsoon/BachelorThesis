@@ -4,6 +4,9 @@ import torch
 import numpy as np
 from torch.optim.lr_scheduler import CyclicLR
 from torch.utils.data import Dataset, DataLoader
+from utils import log
+
+DIR = "embedding_classifier"
 
 
 def mean_score_ann(X_train, y):
@@ -16,7 +19,7 @@ def mean_score_ann(X_train, y):
     splits = KFold(n_splits=k, shuffle=True, random_state=42)
     mean_val_acc = 0
     for fold, (train_idx, val_idx) in enumerate(splits.split(np.arange(len(X_train)))):
-        print('Fold {}'.format(fold + 1))
+        log('Fold {}'.format(fold + 1), DIR)
 
         train_data = Data(X_train[train_idx, :], y[train_idx])
         test_data = Data(X_train[val_idx, :], y[val_idx])
@@ -49,7 +52,7 @@ def train_ann(clf, epochs, criterion, train_loader, test_loader):
             optimizer.step()
             running_loss += loss.item()
         if (epoch + 1) % 50 == 0:
-            print(f'[{epoch + 1}/{epochs}] loss: {running_loss / 2000:.5f}')
+            log(f'[{epoch + 1}/{epochs}] loss: {running_loss / 2000:.5f}', DIR)
 
     correct, total = 0, 0
     predictions = []
