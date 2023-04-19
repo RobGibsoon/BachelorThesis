@@ -21,4 +21,5 @@ The Bachelorthesis will consist of two parts
 Pick indexes and implement methods to build feature vectors.
 ### Part 2
 Classify embeddings with 3 classfiers (SVM, KNN, ANN) and report what accuracy is achieved when classifying the graphs based on the feature
-vectors that we get by running the methods from part 1. Classification is binary. For example if a molecul is carcinogenic or not.
+vectors that we get by running the methods from part 1. Classification is binary. For example if a molecul is carcinogenic or not. The goal is 
+classify with a higher accuracy than previously possible.
