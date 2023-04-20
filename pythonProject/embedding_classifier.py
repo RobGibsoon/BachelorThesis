@@ -71,7 +71,7 @@ class EmbeddingClassifier:
         clf_knn.fit(clf_X_train, self.y_train)
         grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1)
         grid_search.fit(clf_X_train, self.y_train)
-        append_hyperparams(self.feature_selection, grid_search, clf_knn)
+        append_hyperparams_file(self.feature_selection, grid_search, clf_knn)
 
         # construct, train optimal model and perform predictions
         knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
@@ -101,7 +101,7 @@ class EmbeddingClassifier:
         grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
                                    return_train_score=False, verbose=1)
         grid_search.fit(clf_X_train, self.y_train)
-        append_hyperparams(self.feature_selection, grid_search, clf_svm)
+        append_hyperparams_file(self.feature_selection, grid_search, clf_svm)
 
         # construct, train optimal model and perform predictions
         clf_svm = SVC(C=grid_search.best_params_['C'],
@@ -116,32 +116,42 @@ class EmbeddingClassifier:
         return test_accuracy
 
     def predict_ann(self):
-        """train and predict with ann"""
+        """train and predict 5 ANN's"""
 
         clf = ANN(self.X_train.shape[1])
         if self.feature_selection:
             clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
-        clf_ann = ANN(clf_X_train.shape[1])
 
-        criterion = nn.CrossEntropyLoss()
-        epochs = 300
-        batch_size = 1
+        ann_list = [ANN(clf_X_train.shape[1]) for i in range(5)]
+        accuracies = np.array([])
+        for i, clf_ann in enumerate(ann_list):
 
-        train_data = Data(clf_X_train, self.y_train)
-        test_data = Data(clf_X_test, self.y_test)
-        train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=0)
-        test_loader = DataLoader(test_data, batch_size=batch_size)
-        accuracy, predictions, labels = train_ann(clf_ann, epochs, criterion, train_loader, test_loader)
-        save_preds(predictions, self.y_test, type(clf_ann).__name__, self.dataset_name, self.feature_selection)
-        return accuracy
+            criterion = nn.CrossEntropyLoss()
+            epochs = 50#todo 300
+            batch_size = 1
+
+            train_data = Data(clf_X_train, self.y_train)
+            test_data = Data(clf_X_test, self.y_test)
+            train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=0)
+            test_loader = DataLoader(test_data, batch_size=batch_size)
+            accuracy, predictions, labels = train_ann(clf_ann, epochs, criterion, train_loader, test_loader)
+            accuracies = np.append(accuracies, accuracy)
+            save_preds(predictions, self.y_test, type(clf_ann).__name__+f"{i}", self.dataset_name, self.feature_selection)
+
+            append_accuracies_file(dataset_name, "ann", self.feature_selection, accuracy, index=i)
+        print(accuracies)
+        avg_accuracy = np.sum(accuracies)/5
+        high_deviation = np.max(accuracies)-avg_accuracy
+        low_deviation = avg_accuracy - min(accuracies)
+        return avg_accuracy, high_deviation, low_deviation
 
 
 def get_best_feature_set(clf, X_train, y):
     """returns the best set for classifying using an SVM/KNN clf, uses cross-validation and takes the set with the
     highest mean accuracy"""
-    n_features = X_train.shape[1]
+    n_features = 3#todo X_train.shape[1]
     # n_features = 5
     best_score = -np.inf
     best_subset = None
@@ -169,28 +179,28 @@ def feature_selected_sets(clf, X_train, X_test, y):
     """returns the modified training and test sets after performing feature selection on them"""
     best_subset, best_score = get_best_feature_set(clf, X_train, y)
     features = get_feature_names(best_subset)
-    append_features(clf, features)
+    append_features_file(clf, features)
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
     return X_train_fs, X_test_fs
 
 
-def append_features(clf, features):
+def append_features_file(clf, features):
     with open('log/features/features.txt', mode='a') as file:
         file.write(f"The optimal features selected for {type(clf).__name__} were: {features}\n")
     file.close()
     log(f"The optimal features selected for {type(clf).__name__} were: {features}", DIR)
 
 
-def append_accuracies(dn, clf, fs, acc):
+def append_accuracies_file(dn, clf, fs, acc, index=""):
     with open('log/accuracies/accuracies.txt', mode='a') as file:
-        file.write(f'Accuracy for {dn} {clf} fs={fs}: {acc}\n')
+        file.write(f'Accuracy for {dn} {clf}{index} fs={fs}: {acc}\n')
     file.close()
-    log(f'Accuracy for {dn} {clf} fs={fs}: {acc}\n', DIR)
+    log(f'Accuracy for {dn} {type(clf).__name__} fs={fs}: {acc}\n', DIR)
 
 
-def append_hyperparams(feature_selection, grid_search, clf):
+def append_hyperparams_file(feature_selection, grid_search, clf):
     with open('log/hyperparameters/hyperparameters.txt', mode='a') as file:
         file.write(f"The optimal hyperparameters selected for {type(clf).__name__} and fs = "
                    f"{feature_selection} were: {grid_search.best_params_}\n")
@@ -206,7 +216,10 @@ def save_preds(preds, labels, clf, dn, fs):
 
 
 if __name__ == "__main__":
-
+    # use following for debugging comment
+    # dataset_name = "PTC_MR_0"
+    # embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=False)
+    # avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
     parser = argparse.ArgumentParser()
     parser.add_argument('--dn', type=str, help='The name of the dataset to be classified.')
     parser.add_argument('--clf', type=str, default='knn', help='Which classifier model should be used. Choose '
@@ -225,15 +238,16 @@ if __name__ == "__main__":
     if clf_model.lower() == 'knn':
         acc = embedding_classifier.predict_knn()
         log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
-        append_accuracies(dataset_name, clf_model, feature_selection, acc)
+        append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
     elif clf_model.lower() == 'svm':
         acc = embedding_classifier.predict_svm()
         log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
-        append_accuracies(dataset_name, clf_model, feature_selection, acc)
+        append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
     elif clf_model.lower() == 'ann':
-        acc = embedding_classifier.predict_ann()
-        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {acc}", DIR)
-        append_accuracies(dataset_name, clf_model, feature_selection, acc)
+        avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
+        log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
+            f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
+        append_accuracies_file(dataset_name, "ann_avg", feature_selection, avg_accuracy)
     else:
         raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
 
