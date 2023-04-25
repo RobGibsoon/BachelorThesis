@@ -24,7 +24,7 @@ from utils import NP_SEED, get_feature_names, all_subsets, log
 matplotlib.use('TkAgg')
 
 np.random.seed(NP_SEED)
-DIR = "embedding_classifier"
+DIR = "embedding_classifier.py"
 
 
 class EmbeddingClassifier:
@@ -221,26 +221,44 @@ def append_features_file(clf, features):
     log(f"The optimal features selected for {type(clf).__name__} were: {features}", DIR)
 
 
-def append_accuracies_file(dn, clf, fs, acc, index=""):
-    with open('log/accuracies/accuracies.txt', mode='a') as file:
-        file.write(f'Accuracy for {dn} {clf}{index} fs={fs}: {acc}\n')
-    file.close()
-    log(f'Accuracy for {dn} {type(clf).__name__} fs={fs}: {acc}\n', DIR)
+def append_accuracies_file(dn, clf, fs, acc, index="", ref=False):
+    if not ref:
+        with open('log/accuracies/accuracies.txt', mode='a') as file:
+            file.write(f'Accuracy for {dn} {clf}{index} fs={fs}: {acc}\n')
+        file.close()
+        log(f'Accuracy for {dn} {type(clf).__name__} fs={fs}: {acc}\n', DIR)
+    else:
+        with open('../log/accuracies/reference_accuracies.txt', mode='a') as file:
+            file.write(f'Reference accuracy for {dn} {clf}: {acc}\n')
+        file.close()
+        #log(f'Reference accuracy for {dn} {type(clf).__name__}: {acc}\n', DIR)
 
 
-def append_hyperparams_file(feature_selection, grid_search, clf):
-    with open('log/hyperparameters/hyperparameters.txt', mode='a') as file:
-        file.write(f"The optimal hyperparameters selected for {type(clf).__name__} and fs = "
-                   f"{feature_selection} were: {grid_search.best_params_}\n")
-    file.close()
-    log(f"The optimal hyperparameters selected for {type(clf).__name__} were: {grid_search.best_params_}", DIR)
+def append_hyperparams_file(fs, gs, clf, ref=False):
+    if not ref:
+        with open('log/hyperparameters/hyperparameters.txt', mode='a') as file:
+            file.write(f"The optimal hyperparameters selected for {type(clf).__name__} and fs = "
+                       f"{fs} were: {gs.best_params_}\n")
+        file.close()
+        log(f"The optimal hyperparameters selected for {type(clf).__name__} were: {gs.best_params_}", DIR)
+    else:
+        with open('../log/hyperparameters/reference_hyperparameters.txt', mode='a') as file:
+            file.write(f"The optimal reference hyperparameters selected for {type(clf).__name__} "
+                       f"were: {gs.best_params_}\n")
+        file.close()
+        #log(f"The optimal reference hyperparameters selected for {type(clf).__name__} were: {gs.best_params_}", DIR)
 
 
-def save_preds(preds, labels, clf, dn, fs):
+def save_preds(preds, labels, clf, dn, fs, ref=False):
     """saves labels and predictions to a csv-file"""
-    data = {"preds": preds, "labels": labels}
-    df = pd.DataFrame(data)
-    df.to_csv(f'log/predictions/preds_labels_{clf}_{dn}_fs{fs}.csv', index=False)
+    if not ref:
+        data = {"preds": preds, "labels": labels}
+        df = pd.DataFrame(data)
+        df.to_csv(f'log/predictions/preds_labels_{clf}_{dn}_fs{fs}.csv', index=False)
+    else:
+        data = {"preds": preds, "labels": labels}
+        df = pd.DataFrame(data)
+        df.to_csv(f'../log/predictions/reference_preds_labels_{clf}_{dn}.csv', index=False)
 
 
 if __name__ == "__main__":

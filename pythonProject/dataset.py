@@ -9,7 +9,6 @@ import matplotlib
 import pandas as pd
 
 matplotlib.use('TkAgg')
-DIR = "dataset"
 
 
 def create_embedded_graph_set(dataset, wanted_indices):
@@ -32,7 +31,7 @@ def create_embedded_graph_set(dataset, wanted_indices):
             # the reason behind the fail is that the graph isn't connected and not some other unexpected error occurs
             unsuccessful_count += 1
     print(f'Finished embedding with successfully on {successful_count}/{len(dataset)} graphs but failed on '
-        f'{unsuccessful_count}/{len(dataset)} graphs', DIR)
+        f'{unsuccessful_count}/{len(dataset)} graphs')
 
     save_filter_split_file(successful_indices, dataset_name)
     return embedded_graphs
@@ -122,7 +121,7 @@ def save_filter_split_file(successful_indices, dataset_name):
 
 def create_df_and_save_to_csv(data, dataset_name):
     df = pd.DataFrame(data)
-    print(df, DIR)
+    print(df)
     if not exists(f'embedded_{dataset_name}.csv'):
         df.to_csv(f'embedded_{dataset_name}.csv', index=False)
     else:
