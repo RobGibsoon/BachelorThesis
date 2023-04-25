@@ -72,7 +72,8 @@ def all_subsets(indices_list):
 
 def get_feature_names(feature_subset):
     """returns the names of the features for a list with indices 0-11"""
-    assert len(feature_subset) > 0
+    count=len(feature_subset)
+    assert count > 0
     features = ''
     for i, feature in enumerate(feature_subset):
         if i + 1 != len(feature_subset):
@@ -80,4 +81,4 @@ def get_feature_names(feature_subset):
             features += ", "
         else:
             features += (feature_names[feature])
-    return features
+    return features, count
