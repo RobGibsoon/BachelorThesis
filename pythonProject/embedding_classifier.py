@@ -65,7 +65,7 @@ class EmbeddingClassifier:
 
         # perform feature selection
         if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train)
+            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
 
@@ -73,7 +73,7 @@ class EmbeddingClassifier:
         clf_knn.fit(clf_X_train, self.y_train)
         grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1)
         grid_search.fit(clf_X_train, self.y_train)
-        append_hyperparams_file(self.feature_selection, grid_search, clf_knn)
+        append_hyperparams_file(self.feature_selection, grid_search, clf_knn, self.dataset_name)
 
         # construct, train optimal model and perform predictions
         knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
@@ -95,7 +95,7 @@ class EmbeddingClassifier:
 
         # perform feature selection
         if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train)
+            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
 
@@ -103,7 +103,7 @@ class EmbeddingClassifier:
         grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
                                    return_train_score=False, verbose=1)
         grid_search.fit(clf_X_train, self.y_train)
-        append_hyperparams_file(self.feature_selection, grid_search, clf_svm)
+        append_hyperparams_file(self.feature_selection, grid_search, clf_svm, self.dataset_name)
 
         # construct, train optimal model and perform predictions
         clf_svm = SVC(C=grid_search.best_params_['C'],
@@ -122,7 +122,7 @@ class EmbeddingClassifier:
 
         clf = ANN(self.X_train.shape[1])
         if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train)
+            clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
 
@@ -176,11 +176,11 @@ def get_best_feature_set(clf, X_train, y):
     return np.array(subset), best_score
 
 
-def feature_selected_sets(clf, X_train, X_test, y):
+def feature_selected_sets(clf, X_train, X_test, y, dn):
     """returns the modified training and test sets after performing feature selection on them"""
     best_subset, best_score = get_best_feature_set(clf, X_train, y)
-    features = get_feature_names(best_subset)
-    append_features_file(clf, features)
+    features, count = get_feature_names(best_subset)
+    append_features_file(clf, features, count, dn)
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
@@ -201,11 +201,11 @@ def save_test_train_split(X, X_train, X_test, dataset_name):
     sorted_test = assert_arr_test[np.argsort(assert_arr_test[:, 0])]
     assert np.allclose(sorted_train, X_train[np.argsort(X_train[:, 0])])
     assert np.allclose(sorted_test, X_test[np.argsort(X_test[:, 0])])
-    with open(f'../log/index_splits/{dataset_name}_train_split.csv', mode='w') as file:
+    with open(f'log/index_splits/{dataset_name}_train_split.csv', mode='w') as file:
         writer = csv.writer(file)
         writer.writerow(test_indices)
     file.close()
-    with open(f'../log/index_splits/{dataset_name}_test_split.csv', mode='w') as file:
+    with open(f'log/index_splits/{dataset_name}_test_split.csv', mode='w') as file:
         writer = csv.writer(file)
         writer.writerow(train_indices)
     file.close()
@@ -214,9 +214,9 @@ def save_test_train_split(X, X_train, X_test, dataset_name):
         f"The optimal test split: {test_indices}\n", DIR)
 
 
-def append_features_file(clf, features):
+def append_features_file(clf, features, count, dn):
     with open('log/features/features.txt', mode='a') as file:
-        file.write(f"The optimal features selected for {type(clf).__name__} were: {features}\n")
+        file.write(f"The {count} optimal features selected for {type(clf).__name__} on {dn} were: {features}\n")
     file.close()
     log(f"The optimal features selected for {type(clf).__name__} were: {features}", DIR)
 
@@ -228,9 +228,9 @@ def append_accuracies_file(dn, clf, fs, acc, index=""):
     log(f'Accuracy for {dn} {type(clf).__name__} fs={fs}: {acc}\n', DIR)
 
 
-def append_hyperparams_file(feature_selection, grid_search, clf):
+def append_hyperparams_file(feature_selection, grid_search, clf, dn):
     with open('log/hyperparameters/hyperparameters.txt', mode='a') as file:
-        file.write(f"The optimal hyperparameters selected for {type(clf).__name__} and fs = "
+        file.write(f"The optimal hyperparameters selected for {type(clf).__name__} on {dn} and fs = "
                    f"{feature_selection} were: {grid_search.best_params_}\n")
     file.close()
     log(f"The optimal hyperparameters selected for {type(clf).__name__} were: {grid_search.best_params_}", DIR)
@@ -245,38 +245,38 @@ def save_preds(preds, labels, clf, dn, fs):
 
 if __name__ == "__main__":
     # use following for debugging comment
-    dataset_name = "MUTAG"
-    embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=False)
-    acc = embedding_classifier.predict_knn()
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--dn', type=str, help='The name of the dataset to be classified.')
-    # parser.add_argument('--clf', type=str, default='knn', help='Which classifier model should be used. Choose '
-    #                                                            'between: svm, knn or ann')
-    # parser.add_argument('--fs', action="store_true", default=False, help='Whether the feature selection is wished. '
-    #                                                                      'The default is False')
-    # args = parser.parse_args()
-    # if args.dn is None:
-    #     raise argparse.ArgumentError(None, "Please enter the required arguments: --dn, --clf and optionally --fs")
-    #
-    # dataset_name = args.dn
-    # feature_selection = args.fs
-    # clf_model = args.clf
-    # embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=feature_selection)
-    #
-    # if clf_model.lower() == 'knn':
-    #     acc = embedding_classifier.predict_knn()
-    #     log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
-    #     append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
-    # elif clf_model.lower() == 'svm':
-    #     acc = embedding_classifier.predict_svm()
-    #     log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
-    #     append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
-    # elif clf_model.lower() == 'ann':
-    #     avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
-    #     log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
-    #         f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
-    #     append_accuracies_file(dataset_name, "ann_avg", feature_selection, avg_accuracy)
-    # else:
-    #     raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
-    #
-    # log(f"Used feature selection: {False if feature_selection == False else True}", DIR)
+    # dataset_name = "MUTAG"
+    # embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=False)
+    # acc = embedding_classifier.predict_knn()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dn', type=str, help='The name of the dataset to be classified.')
+    parser.add_argument('--clf', type=str, default='knn', help='Which classifier model should be used. Choose '
+                                                               'between: svm, knn or ann')
+    parser.add_argument('--fs', action="store_true", default=False, help='Whether the feature selection is wished. '
+                                                                         'The default is False')
+    args = parser.parse_args()
+    if args.dn is None:
+        raise argparse.ArgumentError(None, "Please enter the required arguments: --dn, --clf and optionally --fs")
+
+    dataset_name = args.dn
+    feature_selection = args.fs
+    clf_model = args.clf
+    embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=feature_selection)
+
+    if clf_model.lower() == 'knn':
+        acc = embedding_classifier.predict_knn()
+        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
+        append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
+    elif clf_model.lower() == 'svm':
+        acc = embedding_classifier.predict_svm()
+        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
+        append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
+    elif clf_model.lower() == 'ann':
+        avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
+        log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
+            f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
+        append_accuracies_file(dataset_name, "ann_avg", feature_selection, avg_accuracy)
+    else:
+        raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
+
+    log(f"Used feature selection: {False if feature_selection == False else True}", DIR)
