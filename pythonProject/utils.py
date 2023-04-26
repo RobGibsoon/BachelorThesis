@@ -2,6 +2,7 @@ from itertools import chain, combinations
 
 import networkx as nx
 import numpy as np
+import pandas as pd
 import torch
 from scipy.sparse import csr_matrix
 # from torch import combinations
@@ -82,3 +83,49 @@ def get_feature_names(feature_subset):
         else:
             features += (feature_names[feature])
     return features, count
+
+def append_features_file(clf, features, count, dn, dir):
+    with open('log/features/features.txt', mode='a') as file:
+        file.write(f"The {count} optimal features selected for {type(clf).__name__} on {dn} were: {features}\n")
+    file.close()
+    log(f"The optimal features selected for {type(clf).__name__} were: {features}", dir)
+
+
+def append_accuracies_file(dn, clf, fs, acc, dir, index="", ref=False):
+    if not ref:
+        with open('log/accuracies/accuracies.txt', mode='a') as file:
+            file.write(f'Accuracy for {dn} {clf}{index} fs={fs}: {acc}\n')
+        file.close()
+        log(f'Accuracy for {dn} {type(clf).__name__} fs={fs}: {acc}\n', dir)
+    else:
+        with open('log/accuracies/reference_accuracies.txt', mode='a') as file:
+            file.write(f'Reference accuracy for {dn} {clf}: {acc}\n')
+        file.close()
+        #log(f'Reference accuracy for {dn} {type(clf).__name__}: {acc}\n', DIR)
+
+
+def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
+    if not ref:
+        with open('log/hyperparameters/hyperparameters.txt', mode='a') as file:
+            file.write(f"The optimal hyperparameters selected for {type(clf).__name__} on {dn} and fs = "
+                       f"{fs} were: {gs.best_params_}\n")
+        file.close()
+        log(f"The optimal hyperparameters selected for {type(clf).__name__} were: {gs.best_params_}", dir)
+    else:
+        with open('log/hyperparameters/reference_hyperparameters.txt', mode='a') as file:
+            file.write(f"The optimal reference hyperparameters selected for {type(clf).__name__} on {dn} "
+                       f"were: {gs.best_params_}\n")
+        file.close()
+        log(f"The optimal reference hyperparameters selected for {type(clf).__name__} were: {gs.best_params_}", dir)
+
+
+def save_preds(preds, labels, clf, dn, fs, ref=False):
+    """saves labels and predictions to a csv-file"""
+    if not ref:
+        data = {"preds": np.ravel(preds), "labels": np.ravel(labels)}
+        df = pd.DataFrame(data)
+        df.to_csv(f'log/predictions/preds_labels_{clf}_{dn}_fs{fs}.csv', index=False)
+    else:
+        data = {"preds": np.ravel(preds), "labels": np.ravel(labels)}
+        df = pd.DataFrame(data)
+        df.to_csv(f'log/predictions/reference_preds_labels_{clf}_{dn}.csv', index=False)
