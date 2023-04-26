@@ -11,6 +11,7 @@ import matplotlib
 import numpy as np
 from ann import mean_score_ann, ANN, Data, train_ann
 from matplotlib import pyplot as plt
+from references import ReferenceClassifier
 from sklearn import svm
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
@@ -19,7 +20,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from torch import nn
 from torch.utils.data import DataLoader
-from utils import NP_SEED, get_feature_names, all_subsets, log
+from utils import NP_SEED, get_feature_names, all_subsets, log, append_accuracies_file, append_features_file, \
+    save_preds, append_hyperparams_file
 
 matplotlib.use('TkAgg')
 
@@ -53,7 +55,7 @@ class EmbeddingClassifier:
         self.X = scaler.transform(self.X)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
                                                                                 random_state=NP_SEED)
-        save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
+        #save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
 
     def predict_knn(self):
         """train and predict with knn"""
@@ -73,7 +75,7 @@ class EmbeddingClassifier:
         clf_knn.fit(clf_X_train, self.y_train)
         grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1)
         grid_search.fit(clf_X_train, self.y_train)
-        append_hyperparams_file(self.feature_selection, grid_search, clf_knn, self.dataset_name)
+        append_hyperparams_file(self.feature_selection, grid_search, clf_knn, self.dataset_name, DIR)
 
         # construct, train optimal model and perform predictions
         knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
@@ -103,7 +105,7 @@ class EmbeddingClassifier:
         grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
                                    return_train_score=False, verbose=1)
         grid_search.fit(clf_X_train, self.y_train)
-        append_hyperparams_file(self.feature_selection, grid_search, clf_svm, self.dataset_name)
+        append_hyperparams_file(self.feature_selection, grid_search, clf_svm, self.dataset_name, DIR)
 
         # construct, train optimal model and perform predictions
         clf_svm = SVC(C=grid_search.best_params_['C'],
@@ -180,7 +182,7 @@ def feature_selected_sets(clf, X_train, X_test, y, dn):
     """returns the modified training and test sets after performing feature selection on them"""
     best_subset, best_score = get_best_feature_set(clf, X_train, y)
     features, count = get_feature_names(best_subset)
-    append_features_file(clf, features, count, dn)
+    append_features_file(clf, features, count, dn, DIR)
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
@@ -214,63 +216,21 @@ def save_test_train_split(X, X_train, X_test, dataset_name):
         f"The optimal test split: {test_indices}\n", DIR)
 
 
-def append_features_file(clf, features, count, dn):
-    with open('log/features/features.txt', mode='a') as file:
-        file.write(f"The {count} optimal features selected for {type(clf).__name__} on {dn} were: {features}\n")
-    file.close()
-    log(f"The optimal features selected for {type(clf).__name__} were: {features}", DIR)
 
-
-def append_accuracies_file(dn, clf, fs, acc, index="", ref=False):
-    if not ref:
-        with open('log/accuracies/accuracies.txt', mode='a') as file:
-            file.write(f'Accuracy for {dn} {clf}{index} fs={fs}: {acc}\n')
-        file.close()
-        log(f'Accuracy for {dn} {type(clf).__name__} fs={fs}: {acc}\n', DIR)
-    else:
-        with open('../log/accuracies/reference_accuracies.txt', mode='a') as file:
-            file.write(f'Reference accuracy for {dn} {clf}: {acc}\n')
-        file.close()
-        #log(f'Reference accuracy for {dn} {type(clf).__name__}: {acc}\n', DIR)
-
-
-def append_hyperparams_file(fs, gs, clf, dn, ref=False):
-    if not ref:
-        with open('log/hyperparameters/hyperparameters.txt', mode='a') as file:
-            file.write(f"The optimal hyperparameters selected for {type(clf).__name__} on {dn} and fs = "
-                       f"{fs} were: {gs.best_params_}\n")
-        file.close()
-        log(f"The optimal hyperparameters selected for {type(clf).__name__} were: {gs.best_params_}", DIR)
-    else:
-        with open('../log/hyperparameters/reference_hyperparameters.txt', mode='a') as file:
-            file.write(f"The optimal reference hyperparameters selected for {type(clf).__name__} on {dn} "
-                       f"were: {gs.best_params_}\n")
-        file.close()
-        #log(f"The optimal reference hyperparameters selected for {type(clf).__name__} were: {gs.best_params_}", DIR)
-
-
-def save_preds(preds, labels, clf, dn, fs, ref=False):
-    """saves labels and predictions to a csv-file"""
-    if not ref:
-        data = {"preds": preds, "labels": labels}
-        df = pd.DataFrame(data)
-        df.to_csv(f'log/predictions/preds_labels_{clf}_{dn}_fs{fs}.csv', index=False)
-    else:
-        data = {"preds": preds, "labels": labels}
-        df = pd.DataFrame(data)
-        df.to_csv(f'../log/predictions/reference_preds_labels_{clf}_{dn}.csv', index=False)
 
 
 if __name__ == "__main__":
-    # use following for debugging comment
-    # dataset_name = "MUTAG"
-    # embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=False)
-    # acc = embedding_classifier.predict_knn()
+    #use following for debugging comment
+    '''dataset_name = "MUTAG"
+    embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=False)
+    acc = embedding_classifier.predict_knn()'''
     parser = argparse.ArgumentParser()
     parser.add_argument('--dn', type=str, help='The name of the dataset to be classified.')
     parser.add_argument('--clf', type=str, default='knn', help='Which classifier model should be used. Choose '
                                                                'between: svm, knn or ann')
     parser.add_argument('--fs', action="store_true", default=False, help='Whether the feature selection is wished. '
+                                                                         'The default is False')
+    parser.add_argument('--ref', action="store_true", default=False, help='Whether we want to calculate reference values. '
                                                                          'The default is False')
     args = parser.parse_args()
     if args.dn is None:
@@ -279,22 +239,42 @@ if __name__ == "__main__":
     dataset_name = args.dn
     feature_selection = args.fs
     clf_model = args.clf
+    is_reference = args.ref
     embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=feature_selection)
+    if not is_reference:
+        if clf_model.lower() == 'knn':
+            acc = embedding_classifier.predict_knn()
+            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
+            append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
+        elif clf_model.lower() == 'svm':
+            acc = embedding_classifier.predict_svm()
+            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
+            append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
+        elif clf_model.lower() == 'ann':
+            avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
+            log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
+                f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
+            append_accuracies_file(dataset_name, "ann_avg", feature_selection, avg_accuracy)
+        else:
+            raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
 
-    if clf_model.lower() == 'knn':
-        acc = embedding_classifier.predict_knn()
-        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
-        append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
-    elif clf_model.lower() == 'svm':
-        acc = embedding_classifier.predict_svm()
-        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
-        append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
-    elif clf_model.lower() == 'ann':
-        avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
-        log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
-            f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
-        append_accuracies_file(dataset_name, "ann_avg", feature_selection, avg_accuracy)
+        log(f"Used feature selection: {False if feature_selection == False else True}", DIR)
     else:
-        raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
+        ref_dir = "references"
+        reference_classifier = ReferenceClassifier(dataset_name)
+        if clf_model.lower() == 'knn':
+            acc = reference_classifier.predict_knn()
+            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
+            append_accuracies_file(dataset_name, clf_model, feature_selection, acc, ref_dir)
+        elif clf_model.lower() == 'svm':
+            acc = reference_classifier.predict_svm()
+            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
+            append_accuracies_file(dataset_name, clf_model, feature_selection, acc, ref_dir)
+        elif clf_model.lower() == 'ann':
+            avg_accuracy, high_deviation, low_deviation = reference_classifier.predict_ann()
+            log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
+                f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
+            append_accuracies_file(dataset_name, "ann_avg", feature_selection, avg_accuracy, ref_dir)
+        else:
+            raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
 
-    log(f"Used feature selection: {False if feature_selection == False else True}", DIR)
