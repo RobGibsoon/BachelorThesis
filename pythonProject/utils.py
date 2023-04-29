@@ -84,11 +84,10 @@ def get_feature_names(feature_subset):
             features += (feature_names[feature])
     return features, count
 
-def append_features_file(clf, features, count, dn, dir):
+def append_features_file(clf, features, count, dn):
     with open('log/features/features.txt', mode='a') as file:
         file.write(f"The {count} optimal features selected for {type(clf).__name__} on {dn} were: {features}\n")
     file.close()
-    log(f"The optimal features selected for {type(clf).__name__} were: {features}", dir)
 
 
 def append_accuracies_file(dn, clf, fs, acc, dir, index="", ref=False):
@@ -101,7 +100,6 @@ def append_accuracies_file(dn, clf, fs, acc, dir, index="", ref=False):
         with open('log/accuracies/reference_accuracies.txt', mode='a') as file:
             file.write(f'Reference accuracy for {dn} {clf}: {acc}\n')
         file.close()
-        #log(f'Reference accuracy for {dn} {type(clf).__name__}: {acc}\n', DIR)
 
 
 def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
@@ -110,13 +108,11 @@ def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
             file.write(f"The optimal hyperparameters selected for {type(clf).__name__} on {dn} and fs = "
                        f"{fs} were: {gs.best_params_}\n")
         file.close()
-        log(f"The optimal hyperparameters selected for {type(clf).__name__} were: {gs.best_params_}", dir)
     else:
         with open('log/hyperparameters/reference_hyperparameters.txt', mode='a') as file:
             file.write(f"The optimal reference hyperparameters selected for {type(clf).__name__} on {dn} "
                        f"were: {gs.best_params_}\n")
         file.close()
-        log(f"The optimal reference hyperparameters selected for {type(clf).__name__} were: {gs.best_params_}", dir)
 
 
 def save_preds(preds, labels, clf, dn, fs, ref=False):

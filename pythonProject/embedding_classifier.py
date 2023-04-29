@@ -55,7 +55,7 @@ class EmbeddingClassifier:
         self.X = scaler.transform(self.X)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
                                                                                 random_state=NP_SEED)
-        #save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
+        save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
 
     def predict_knn(self):
         """train and predict with knn"""
@@ -144,7 +144,7 @@ class EmbeddingClassifier:
             save_preds(predictions, self.y_test, type(clf_ann).__name__ + f"{i}", self.dataset_name,
                        self.feature_selection)
 
-            append_accuracies_file(dataset_name, "ann", self.feature_selection, accuracy, index=i)
+            append_accuracies_file(dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
         print(accuracies)
         avg_accuracy = np.sum(accuracies) / 5
         high_deviation = np.max(accuracies) - avg_accuracy
@@ -182,7 +182,7 @@ def feature_selected_sets(clf, X_train, X_test, y, dn):
     """returns the modified training and test sets after performing feature selection on them"""
     best_subset, best_score = get_best_feature_set(clf, X_train, y)
     features, count = get_feature_names(best_subset)
-    append_features_file(clf, features, count, dn, DIR)
+    append_features_file(clf, features, count, dn)
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
@@ -237,44 +237,44 @@ if __name__ == "__main__":
         raise argparse.ArgumentError(None, "Please enter the required arguments: --dn, --clf and optionally --fs")
 
     dataset_name = args.dn
-    feature_selection = args.fs
+    is_fs = args.fs
     clf_model = args.clf
     is_reference = args.ref
-    embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=feature_selection)
+    embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=is_fs)
     if not is_reference:
         if clf_model.lower() == 'knn':
             acc = embedding_classifier.predict_knn()
             log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
-            append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
+            append_accuracies_file(dataset_name, clf_model, is_fs, acc, DIR)
         elif clf_model.lower() == 'svm':
             acc = embedding_classifier.predict_svm()
             log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
-            append_accuracies_file(dataset_name, clf_model, feature_selection, acc)
+            append_accuracies_file(dataset_name, clf_model, is_fs, acc, DIR)
         elif clf_model.lower() == 'ann':
             avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
             log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
-            append_accuracies_file(dataset_name, "ann_avg", feature_selection, avg_accuracy)
+            append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, DIR)
         else:
             raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
 
-        log(f"Used feature selection: {False if feature_selection == False else True}", DIR)
+        log(f"Used feature selection: {False if is_fs == False else True}", DIR)
     else:
         ref_dir = "references"
         reference_classifier = ReferenceClassifier(dataset_name)
         if clf_model.lower() == 'knn':
             acc = reference_classifier.predict_knn()
             log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
-            append_accuracies_file(dataset_name, clf_model, feature_selection, acc, ref_dir)
+            append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
         elif clf_model.lower() == 'svm':
             acc = reference_classifier.predict_svm()
             log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
-            append_accuracies_file(dataset_name, clf_model, feature_selection, acc, ref_dir)
+            append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
         elif clf_model.lower() == 'ann':
             avg_accuracy, high_deviation, low_deviation = reference_classifier.predict_ann()
             log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
-            append_accuracies_file(dataset_name, "ann_avg", feature_selection, avg_accuracy, ref_dir)
+            append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, ref_dir, ref=True)
         else:
             raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
 
