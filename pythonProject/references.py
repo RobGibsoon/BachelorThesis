@@ -1,4 +1,5 @@
 import argparse
+import csv
 
 import pandas as pd
 
@@ -19,7 +20,15 @@ class ReferenceClassifier:
     def __init__(self, dataset_name):
         self.dataset_name = dataset_name
         self.data = TUDataset(root=f'/tmp/{self.dataset_name}', name=f'{self.dataset_name}')
-
+        filter_split = self.get_csv_idx_split(self.dataset_name, "filter")
+        self.X = [self.data[idx] for idx in filter_split]
+        self.y = np.array([self.X[i].y.item() for i in range(len(self.X))])
+        train_split = self.get_csv_idx_split(self.dataset_name, "train")
+        test_split = self.get_csv_idx_split(self.dataset_name, "test")
+        train_graphs = [self.X[idx] for idx in train_split]
+        test_graphs = [self.X[idx] for idx in test_split]
+        self.kernelized_data_training = create_custom_metric(train_graphs, train_graphs)
+        self.kernelized_data_test = create_custom_metric(test_graphs, train_graphs)
         """
         self.y = labels of data
         self.X = graphs in data
@@ -28,16 +37,21 @@ class ReferenceClassifier:
         self.X_test = create_custom_metric(testing_graphs)
         """
 
-        # TODO: Filter the datset and set the train/test splits based on dataset_name using the saved splits
-
         self.X = np.random.rand(12,12)
         self.y = np.ones((12,1))
         self.y[3]-=1
         self.y[7]-=1
-        training_graphs, testing_graphs, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
+        train_graphs, testing_graphs, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
                                                                                     random_state=NP_SEED)
-        self.kernelized_data_training = create_custom_metric(training_graphs, training_graphs)
-        self.kernelized_data_test = create_custom_metric(testing_graphs, training_graphs)
+        self.kernelized_data_training = create_custom_metric(train_graphs, train_graphs)
+        self.kernelized_data_test = create_custom_metric(testing_graphs, train_graphs)
+
+
+    def get_csv_idx_split(self, dn, idx_type):
+        file = open(f"../log/index_splits/{dn}_{idx_type}_split.csv", "r")
+        idx_split = list(csv.reader(file, delimiter=','))
+        parsed_idx_split = [int(elt) for elt in idx_split[0]]
+        return parsed_idx_split
 
 
     def predict_knn(self):
@@ -91,22 +105,12 @@ class ReferenceClassifier:
         return 100.0, "test", "test"
 
 
-def create_custom_metric(train, test):
-    n = train.shape[0]
+def create_custom_metric(test, train):
     return np.random.rand(len(train), len(test))
 
 
 if __name__ == "__main__":
-    """parser = argparse.ArgumentParser()
-    parser.add_argument('--dn', type=str, help='The name of the dataset to be classified.')
-    parser.add_argument('--clf', type=str, default='knn', help='Which classifier model should be used. Choose '
-                                                               'between: svm, knn or ann')
-    args = parser.parse_args()
-    if args.dn is None:
-        raise argparse.ArgumentError(None, "Please enter the required arguments: --dn and --clf ")
-    dataset_name = args.dn
-    clf_model = args.clf"""
-
+    # use this for developing
     dataset_name = "PTC_MR"
 
     reference_classifier = ReferenceClassifier(dataset_name)
