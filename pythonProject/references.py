@@ -4,6 +4,15 @@ import csv
 import pandas as pd
 
 import numpy as np
+from cyged.graph_pkg_core import GED
+from cyged.graph_pkg_core.edit_cost.edit_cost_vector import EditCostVector
+from cyged.graph_pkg_core.graph.edge import Edge
+from cyged.graph_pkg_core import Graph
+from cyged.graph_pkg_core.graph.label.label_edge import LabelEdge
+from cyged.graph_pkg_core.graph.label.label_node_vector import LabelNodeVector
+from cyged.graph_pkg_core.graph.node import Node
+from torch_geometric.data import Data
+
 from utils import append_hyperparams_file, save_preds, append_accuracies_file
 from sklearn import svm
 from sklearn.metrics import accuracy_score
@@ -29,22 +38,6 @@ class ReferenceClassifier:
         test_graphs = [self.X[idx] for idx in test_split]
         self.kernelized_data_training = create_custom_metric(train_graphs, train_graphs)
         self.kernelized_data_test = create_custom_metric(test_graphs, train_graphs)
-        """
-        self.y = labels of data
-        self.X = graphs in data
-        training_graphs, test_graphs = graphs in X_train, X_test
-        self.X_train = create_custom_metric(training_graphs)
-        self.X_test = create_custom_metric(testing_graphs)
-        """
-
-        self.X = np.random.rand(12,12)
-        self.y = np.ones((12,1))
-        self.y[3]-=1
-        self.y[7]-=1
-        train_graphs, testing_graphs, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
-                                                                                    random_state=NP_SEED)
-        self.kernelized_data_training = create_custom_metric(train_graphs, train_graphs)
-        self.kernelized_data_test = create_custom_metric(testing_graphs, train_graphs)
 
 
     def get_csv_idx_split(self, dn, idx_type):
@@ -106,8 +99,42 @@ class ReferenceClassifier:
 
 
 def create_custom_metric(test, train):
-    return np.random.rand(len(train), len(test))
+    rows = len(test)
+    cols = len(train)
+    res_mat = np.zeros((rows, cols))
+    for i in range(rows):
+        for j in range(i,cols):
+            res_mat[i,j] = graph_edit_distance(test[i],train[j])
 
+    return res_mat
+
+    # n = train.shape[0]
+    # return np.random.rand(len(train), len(test))
+
+def graph_edit_distance(gr_1, gr_2):
+    ged = GED(EditCostVector(1., 1., 1., 1., "euclidean", alpha=0.5))
+    ant_gr_1 = data_to_custom_graph(gr_1)
+    ant_gr_2 = data_to_custom_graph(gr_2)
+    edit_cost = ged.compute_edit_distance(ant_gr_1,ant_gr_2)
+    return edit_cost
+
+def data_to_custom_graph(data: Data):
+    n = data.num_nodes
+    m = data.num_edges
+
+    graph = Graph("", "", n)
+
+    # Add nodes to the custom graph
+    for i, node_feat in enumerate(data.x.numpy().astype(np.double)):
+        graph.add_node(Node(i, LabelNodeVector(node_feat)))
+
+    # Add edges to the custom graph
+    edge_index = data.edge_index.numpy()
+    for i in range(0, edge_index.shape[1], 2):
+        src, dest = edge_index[:, i]
+        graph.add_edge(Edge(src, dest, LabelEdge(0)))
+
+    return graph
 
 if __name__ == "__main__":
     # use this for developing
