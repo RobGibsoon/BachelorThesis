@@ -36,6 +36,8 @@ class ReferenceClassifier:
         test_split = self.get_csv_idx_split(self.dataset_name, "test")
         train_graphs = [self.X[idx] for idx in train_split]
         test_graphs = [self.X[idx] for idx in test_split]
+        self.y_train = [self.y[idx] for idx in train_split]
+        self.y_test = [self.y[idx] for idx in test_split]
         self.kernelized_data_training = create_custom_metric(train_graphs, train_graphs)
         self.kernelized_data_test = create_custom_metric(test_graphs, train_graphs)
 
@@ -49,7 +51,7 @@ class ReferenceClassifier:
 
     def predict_knn(self):
         """train and predict with knn"""
-        k_range = list(range(1, 3))#todo put back to 31
+        k_range = list(range(1, 31))#todo put back to 31
         param_grid = {'metric': ['euclidean', 'manhattan', 'cosine'],
                       'algorithm': ['brute'],
                       'n_neighbors': k_range}
@@ -78,7 +80,7 @@ class ReferenceClassifier:
         clf_svm = svm.SVC(kernel='precomputed')
 
         # perform hyper parameter selection todo: cv=10
-        grid_search = GridSearchCV(clf_svm, param_grid, cv=2, scoring='accuracy', error_score='raise',
+        grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
                                    return_train_score=False, verbose=1)
         grid_search.fit(self.kernelized_data_training, np.ravel(self.y_train))
         append_hyperparams_file(False, grid_search, clf_svm, self.dataset_name, DIR, ref=True)
