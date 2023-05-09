@@ -1,17 +1,11 @@
 import argparse
-import copy
 import csv
-import sys
-from itertools import chain, combinations
-
-import pandas as pd
-import seaborn as sns
 
 import matplotlib
 import numpy as np
-from ann import mean_score_ann, ANN, Data, train_ann
+import pandas as pd
+import seaborn as sns
 from matplotlib import pyplot as plt
-from references import ReferenceClassifier
 from sklearn import svm
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
@@ -20,8 +14,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from torch import nn
 from torch.utils.data import DataLoader
+
+from ann import mean_score_ann, ANN, Data, train_ann
+from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, all_subsets, log, append_accuracies_file, append_features_file, \
-    save_preds, append_hyperparams_file
+    save_preds, append_hyperparams_file, inputs
 
 matplotlib.use('TkAgg')
 
@@ -67,7 +64,8 @@ class EmbeddingClassifier:
 
         # perform feature selection
         if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train, self.dataset_name)
+            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
 
@@ -97,7 +95,8 @@ class EmbeddingClassifier:
 
         # perform feature selection
         if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train, self.dataset_name)
+            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
 
@@ -124,7 +123,8 @@ class EmbeddingClassifier:
 
         clf = ANN(self.X_train.shape[1])
         if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train, self.dataset_name)
+            clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
 
@@ -205,41 +205,32 @@ def save_test_train_split(X, X_train, X_test, dataset_name):
     assert np.allclose(sorted_test, X_test[np.argsort(X_test[:, 0])])
     with open(f'log/index_splits/{dataset_name}_train_split.csv', mode='w') as file:
         writer = csv.writer(file)
-        writer.writerow(test_indices)
+        writer.writerow(train_indices)
     file.close()
     with open(f'log/index_splits/{dataset_name}_test_split.csv', mode='w') as file:
         writer = csv.writer(file)
-        writer.writerow(train_indices)
+        writer.writerow(test_indices)
     file.close()
     log(f"{dataset_name}\n"
         f"he optimal train split: {train_indices}\n"
         f"The optimal test split: {test_indices}\n", DIR)
 
 
-
-
-
 if __name__ == "__main__":
-    #use following for debugging comment
-    '''dataset_name = "MUTAG"
-    embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=False)
-    acc = embedding_classifier.predict_knn()'''
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dn', type=str, help='The name of the dataset to be classified.')
-    parser.add_argument('--clf', type=str, default='knn', help='Which classifier model should be used. Choose '
-                                                               'between: svm, knn or ann')
-    parser.add_argument('--fs', action="store_true", default=False, help='Whether the feature selection is wished. '
-                                                                         'The default is False')
-    parser.add_argument('--ref', action="store_true", default=False, help='Whether we want to calculate reference values. '
-                                                                         'The default is False')
+    parser.add_argument('--idx', type=str,
+                        help='The index of which command should be completed according to the inputs in utils.')
     args = parser.parse_args()
-    if args.dn is None:
-        raise argparse.ArgumentError(None, "Please enter the required arguments: --dn, --clf and optionally --fs")
+    if args.idx is None:
+        raise argparse.ArgumentError(None, "Please a possible index from 0-35.")
 
-    dataset_name = args.dn
-    is_fs = args.fs
-    clf_model = args.clf
-    is_reference = args.ref
+    idx = int(args.idx)
+    parameters = inputs[idx]
+    log(f'{parameters}', DIR)
+    dataset_name = parameters[0]
+    clf_model = parameters[1]
+    is_fs = parameters[2]
+    is_reference = parameters[3]
     embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=is_fs)
     if not is_reference:
         if clf_model.lower() == 'knn':
@@ -251,6 +242,7 @@ if __name__ == "__main__":
             log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
             append_accuracies_file(dataset_name, clf_model, is_fs, acc, DIR)
         elif clf_model.lower() == 'ann':
+            print(f'using ann and {dataset_name} and {is_fs}')
             avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
             log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
@@ -277,4 +269,3 @@ if __name__ == "__main__":
             append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, ref_dir, ref=True)
         else:
             raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
-

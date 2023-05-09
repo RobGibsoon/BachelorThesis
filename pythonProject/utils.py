@@ -3,14 +3,48 @@ from itertools import chain, combinations
 import networkx as nx
 import numpy as np
 import pandas as pd
-import torch
 from scipy.sparse import csr_matrix
-# from torch import combinations
-from torch_geometric.utils import to_dense_adj, degree
 from scipy.sparse.csgraph import dijkstra
+from torch_geometric.utils import to_dense_adj, degree
 
 feature_names = {0: "balaban", 1: "estrada", 2: "narumi", 3: "padmakar-ivan", 4: "polarity-nr", 5: "randic",
                  6: "szeged", 7: "wiener", 8: "zagreb", 9: "nodes", 10: "edges", 11: "schultz"}
+inputs = {
+    0: ("PTC_MR", "ann", True, False),
+    1: ("PTC_MR", "knn", True, False),
+    2: ("PTC_MR", "svm", True, False),
+    3: ("PTC_MR", "ann", False, False),
+    4: ("PTC_MR", "knn", False, False),
+    5: ("PTC_MR", "svm", False, False),
+    6: ("Mutagenicity", "ann", True, False),
+    7: ("Mutagenicity", "knn", True, False),
+    8: ("Mutagenicity", "svm", True, False),
+    9: ("Mutagenicity", "ann", False, False),
+    10: ("Mutagenicity", "knn", False, False),
+    11: ("Mutagenicity", "svm", False, False),
+    12: ("MUTAG", "ann", True, False),
+    13: ("MUTAG", "knn", True, False),
+    14: ("MUTAG", "svm", True, False),
+    15: ("MUTAG", "ann", False, False),
+    16: ("MUTAG", "knn", False, False),
+    17: ("MUTAG", "svm", False, False),
+    18: ("PTC_MR", "ann", True, True),
+    19: ("PTC_MR", "knn", True, True),
+    20: ("PTC_MR", "svm", True, True),
+    21: ("PTC_MR", "ann", False, True),
+    22: ("PTC_MR", "knn", False, True),
+    23: ("PTC_MR", "svm", False, True),
+    24: ("Mutagenicity", "ann", True, True),
+    25: ("Mutagenicity", "knn", True, True),
+    26: ("Mutagenicity", "svm", True, True),
+    27: ("Mutagenicity", "ann", False, True),
+    28: ("Mutagenicity", "knn", False, True),
+    29: ("Mutagenicity", "svm", False, True),
+    30: ("MUTAG", "ann", True, True),
+    31: ("MUTAG", "knn", True, True),
+    32: ("MUTAG", "svm", True, True),
+}
+
 BALABAN = 0
 ESTRADA = 1
 NARUMI = 2
@@ -45,10 +79,11 @@ def is_connected(graph):
     connected = nx.is_connected(G)
     return connected
 
+
 def log(text, dir):
     """used to print all the print statements into a log.txt file"""
     with open(f'log/{dir}/log.txt', mode='a') as file:
-        file.write(text+"\n")
+        file.write(text + "\n")
     file.close()
 
 
@@ -70,10 +105,9 @@ def all_subsets(indices_list):
     return chain(*map(lambda x: combinations(indices_list, x), range(1, len(indices_list) + 1)))
 
 
-
 def get_feature_names(feature_subset):
     """returns the names of the features for a list with indices 0-11"""
-    count=len(feature_subset)
+    count = len(feature_subset)
     assert count > 0
     features = ''
     for i, feature in enumerate(feature_subset):
@@ -83,6 +117,7 @@ def get_feature_names(feature_subset):
         else:
             features += (feature_names[feature])
     return features, count
+
 
 def append_features_file(clf, features, count, dn):
     with open('log/features/features.txt', mode='a') as file:

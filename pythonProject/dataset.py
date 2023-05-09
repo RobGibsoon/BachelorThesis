@@ -116,7 +116,7 @@ def save_filter_split_file(successful_indices, dataset_name):
         writer = csv.writer(file)
         writer.writerow(successful_indices)
     file.close()
-    print(f'split used for dataset {dataset_name}: {successful_indices}\n', DIR)
+    print(f'split used for dataset {dataset_name}: {successful_indices}\n')
 
 
 def create_df_and_save_to_csv(data, dataset_name):
@@ -132,7 +132,7 @@ def create_df_and_save_to_csv(data, dataset_name):
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/Mutagenicity', name='Mutagenicity')
+    dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
     dataset_name = dataset.name
     wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
                       EDGES, SCHULTZ]

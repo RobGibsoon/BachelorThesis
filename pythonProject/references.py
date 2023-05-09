@@ -1,26 +1,22 @@
-import argparse
 import csv
-
-import pandas as pd
 
 import numpy as np
 from cyged.graph_pkg_core import GED
+from cyged.graph_pkg_core import Graph
 from cyged.graph_pkg_core.edit_cost.edit_cost_vector import EditCostVector
 from cyged.graph_pkg_core.graph.edge import Edge
-from cyged.graph_pkg_core import Graph
 from cyged.graph_pkg_core.graph.label.label_edge import LabelEdge
 from cyged.graph_pkg_core.graph.label.label_node_vector import LabelNodeVector
 from cyged.graph_pkg_core.graph.node import Node
-from torch_geometric.data import Data
-
-from utils import append_hyperparams_file, save_preds, append_accuracies_file
 from sklearn import svm
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
+from torch_geometric.data import Data
 from torch_geometric.datasets import TUDataset
-from utils import NP_SEED, log
+
+from utils import append_hyperparams_file, save_preds, append_accuracies_file
 
 DIR = "references"
 
@@ -38,87 +34,113 @@ class ReferenceClassifier:
         test_graphs = [self.X[idx] for idx in test_split]
         self.y_train = [self.y[idx] for idx in train_split]
         self.y_test = [self.y[idx] for idx in test_split]
-        self.kernelized_data_training = create_custom_metric(train_graphs, train_graphs)
-        self.kernelized_data_test = create_custom_metric(test_graphs, train_graphs)
-
+        alpha_values = np.arange(0.05, 1.0, 0.05)
+        self.kernelized_data_training = [create_custom_metric(train_graphs, train_graphs, alpha) for alpha in
+                                         alpha_values]
+        self.kernelized_data_test = [create_custom_metric(test_graphs, train_graphs, alpha) for alpha in alpha_values]
 
     def get_csv_idx_split(self, dn, idx_type):
-        file = open(f"../log/index_splits/{dn}_{idx_type}_split.csv", "r")
+        file = open(f"log/index_splits/{dn}_{idx_type}_split.csv", "r")
         idx_split = list(csv.reader(file, delimiter=','))
         parsed_idx_split = [int(elt) for elt in idx_split[0]]
         return parsed_idx_split
 
-
     def predict_knn(self):
         """train and predict with knn"""
-        k_range = list(range(1, 31))#todo put back to 31
-        param_grid = {'metric': ['euclidean', 'manhattan', 'cosine'],
-                      'algorithm': ['brute'],
+        best_kernel_index = 0
+        prev_score = 0
+        best_knn = None
+
+        k_range = list(range(1, 31))
+        param_grid = {'algorithm': ['brute'],
                       'n_neighbors': k_range}
-        clf_knn = KNeighborsClassifier(metric='precomputed')
+        for i, cur_kernel in enumerate(self.kernelized_data_training):
+            clf_knn = KNeighborsClassifier(metric='precomputed')
 
-        # perform hyper parameter selection todo: cv=10
-        grid_search = GridSearchCV(clf_knn, param_grid, cv=2, scoring='accuracy', return_train_score=False, verbose=1)
-        grid_search.fit(self.kernelized_data_training, np.ravel(self.y_train))
-        append_hyperparams_file(False, grid_search, clf_knn, self.dataset_name, DIR, ref=True)
+            # perform hyper parameter selection
+            grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False,
+                                       verbose=1)
+            grid_search.fit(cur_kernel, np.ravel(self.y_train))
+            append_hyperparams_file(False, grid_search, clf_knn, self.dataset_name, DIR, ref=True)
 
-        # construct, train optimal model and perform predictions
-        knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
-                                   metric=grid_search.best_params_['metric'],
-                                   n_neighbors=grid_search.best_params_['n_neighbors'])
+            # construct, train optimal model and perform predictions
+            clf_knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
+                                           n_neighbors=grid_search.best_params_['n_neighbors'],
+                                           metric='precomputed')
 
-        knn.fit(self.kernelized_data_training, np.ravel(self.y_train))
-        predictions = knn.predict(self.kernelized_data_test)
+            clf_knn.fit(cur_kernel, np.ravel(self.y_train))
+            score = clf_knn.score(cur_kernel, np.ravel(self.y_train))
+            if score > prev_score:
+                prev_score = score
+                best_knn = clf_knn
+                best_kernel_index = i
+
+        predictions = best_knn.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
-        save_preds(predictions, self.y_test, type(clf_knn).__name__, self.dataset_name, False, ref=True)
+        save_preds(predictions, self.y_test, type(best_knn).__name__, self.dataset_name, False, ref=True)
         return test_accuracy
 
     def predict_svm(self):
         """train and predict with svm"""
+        best_kernel_index = 0
+        prev_score = 0
+        best_svm = None
+
         param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
-                      'gamma': [0.001, 0.01, 0.1, 1, 10, 100]} # maybe kernel=custom
-        clf_svm = svm.SVC(kernel='precomputed')
+                      'gamma': [0.001, 0.01, 0.1, 1, 10, 100]}
 
-        # perform hyper parameter selection todo: cv=10
-        grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
-                                   return_train_score=False, verbose=1)
-        grid_search.fit(self.kernelized_data_training, np.ravel(self.y_train))
-        append_hyperparams_file(False, grid_search, clf_svm, self.dataset_name, DIR, ref=True)
+        for i, cur_kernel in enumerate(self.kernelized_data_training):
+            clf_svm = svm.SVC(kernel='precomputed')
 
-        # construct, train optimal model and perform predictions
-        clf_svm = SVC(C=grid_search.best_params_['C'],
-                      gamma=grid_search.best_params_['gamma'])
+            # perform hyper parameter selection
+            grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
+                                       return_train_score=False, verbose=1)
+            grid_search.fit(cur_kernel, np.ravel(self.y_train))
+            append_hyperparams_file(False, grid_search, clf_svm, self.dataset_name, DIR, ref=True)
 
-        clf_svm.fit(self.kernelized_data_training, np.ravel(self.y_train))
-        predictions = clf_svm.predict(self.kernelized_data_test)
+            # construct, train optimal model and perform predictions
+            clf_svm = SVC(C=grid_search.best_params_['C'],
+                          gamma=grid_search.best_params_['gamma'],
+                          kernel='precomputed')
+
+            clf_svm.fit(cur_kernel, np.ravel(self.y_train))
+            score = clf_svm.score(cur_kernel, np.ravel(self.y_train))
+            if score > prev_score:
+                prev_score = score
+                best_svm = clf_svm
+                best_kernel_index = i
+
+        predictions = best_svm.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
-        save_preds(predictions, self.y_test, type(clf_svm).__name__, self.dataset_name, False, ref=True)
+        save_preds(predictions, self.y_test, type(best_svm).__name__, self.dataset_name, False, ref=True)
 
         return test_accuracy
 
     def predict_ann(self):
-        return 100.0, "test", "test"
+        return 100.0, 3.0, 2.0
 
 
-def create_custom_metric(test, train):
+def create_custom_metric(test, train, alpha):
     rows = len(test)
     cols = len(train)
     res_mat = np.zeros((rows, cols))
     for i in range(rows):
-        for j in range(i,cols):
-            res_mat[i,j] = graph_edit_distance(test[i],train[j])
+        for j in range(i, cols):
+            res_mat[i, j] = graph_edit_distance(test[i], train[j], alpha)
 
     return res_mat
 
     # n = train.shape[0]
     # return np.random.rand(len(train), len(test))
 
-def graph_edit_distance(gr_1, gr_2):
-    ged = GED(EditCostVector(1., 1., 1., 1., "euclidean", alpha=0.5))
+
+def graph_edit_distance(gr_1, gr_2, alpha):
+    ged = GED(EditCostVector(1., 1., 1., 1., "euclidean", alpha=alpha))
     ant_gr_1 = data_to_custom_graph(gr_1)
     ant_gr_2 = data_to_custom_graph(gr_2)
-    edit_cost = ged.compute_edit_distance(ant_gr_1,ant_gr_2)
+    edit_cost = ged.compute_edit_distance(ant_gr_1, ant_gr_2)
     return edit_cost
+
 
 def data_to_custom_graph(data: Data):
     n = data.num_nodes
@@ -138,6 +160,7 @@ def data_to_custom_graph(data: Data):
 
     return graph
 
+
 if __name__ == "__main__":
     # use this for developing
     dataset_name = "PTC_MR"
@@ -150,4 +173,3 @@ if __name__ == "__main__":
 
     append_accuracies_file(dataset_name, "knn", False, knn_acc, DIR, ref=True)
     append_accuracies_file(dataset_name, "svm", False, svm_acc, DIR, ref=True)
-
