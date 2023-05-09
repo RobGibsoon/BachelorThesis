@@ -1,11 +1,8 @@
 import argparse
 import csv
 
-import matplotlib
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from matplotlib import pyplot as plt
 from sklearn import svm
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
@@ -19,8 +16,6 @@ from ann import mean_score_ann, ANN, Data, train_ann
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, all_subsets, log, append_accuracies_file, append_features_file, \
     save_preds, append_hyperparams_file, inputs
-
-matplotlib.use('TkAgg')
 
 np.random.seed(NP_SEED)
 DIR = "embedding_classifier"
@@ -38,13 +33,6 @@ class EmbeddingClassifier:
 
         self.y = self.data['labels'].values
         self.X = self.data.drop('labels', axis=1).values.astype(float)
-
-        plt.subplots(figsize=(12, 5))
-        correlation = self.data.corr(numeric_only=True)
-        sns.heatmap(correlation, annot=True, cmap='RdPu')
-        plt.title('Correlation between the variables')
-        plt.xticks(rotation=45)
-        # plt.show()
 
         # standardizing X
         scaler = StandardScaler()

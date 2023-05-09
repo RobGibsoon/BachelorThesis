@@ -1,14 +1,12 @@
 import csv
 from os.path import exists
 
+import pandas as pd
+from torch_geometric.datasets import TUDataset
+
+from embedded_graph import EmbeddedGraph
 from utils import BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES, EDGES, \
     SCHULTZ, is_connected
-from embedded_graph import EmbeddedGraph
-from torch_geometric.datasets import TUDataset
-import matplotlib
-import pandas as pd
-
-matplotlib.use('TkAgg')
 
 
 def create_embedded_graph_set(dataset, wanted_indices):
@@ -31,7 +29,7 @@ def create_embedded_graph_set(dataset, wanted_indices):
             # the reason behind the fail is that the graph isn't connected and not some other unexpected error occurs
             unsuccessful_count += 1
     print(f'Finished embedding with successfully on {successful_count}/{len(dataset)} graphs but failed on '
-        f'{unsuccessful_count}/{len(dataset)} graphs')
+          f'{unsuccessful_count}/{len(dataset)} graphs')
 
     save_filter_split_file(successful_indices, dataset_name)
     return embedded_graphs
