@@ -34,7 +34,7 @@ class ReferenceClassifier:
         test_graphs = [self.X[idx] for idx in test_split]
         self.y_train = [self.y[idx] for idx in train_split]
         self.y_test = [self.y[idx] for idx in test_split]
-        alpha_values = np.arange(0.05, 1.0, 0.05)
+        alpha_values = np.arange(0.05, 1.0, 0.1)
         self.kernelized_data_training = [create_custom_metric(train_graphs, train_graphs, alpha) for alpha in
                                          alpha_values]
         self.kernelized_data_test = [create_custom_metric(test_graphs, train_graphs, alpha) for alpha in alpha_values]
@@ -50,10 +50,12 @@ class ReferenceClassifier:
         best_kernel_index = 0
         prev_score = 0
         best_knn = None
+        best_grid_search = None
 
         k_range = list(range(1, 31))
         param_grid = {'algorithm': ['brute'],
                       'n_neighbors': k_range}
+
         for i, cur_kernel in enumerate(self.kernelized_data_training):
             clf_knn = KNeighborsClassifier(metric='precomputed')
 
@@ -61,7 +63,6 @@ class ReferenceClassifier:
             grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False,
                                        verbose=1)
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
-            append_hyperparams_file(False, grid_search, clf_knn, self.dataset_name, DIR, ref=True)
 
             # construct, train optimal model and perform predictions
             clf_knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
@@ -74,7 +75,9 @@ class ReferenceClassifier:
                 prev_score = score
                 best_knn = clf_knn
                 best_kernel_index = i
+                best_grid_search = grid_search
 
+        append_hyperparams_file(False, best_grid_search, best_knn, self.dataset_name, DIR, ref=True)
         predictions = best_knn.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
         save_preds(predictions, self.y_test, type(best_knn).__name__, self.dataset_name, False, ref=True)
@@ -85,6 +88,7 @@ class ReferenceClassifier:
         best_kernel_index = 0
         prev_score = 0
         best_svm = None
+        best_grid_search = None
 
         param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
                       'gamma': [0.001, 0.01, 0.1, 1, 10, 100]}
@@ -96,7 +100,6 @@ class ReferenceClassifier:
             grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
                                        return_train_score=False, verbose=1)
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
-            append_hyperparams_file(False, grid_search, clf_svm, self.dataset_name, DIR, ref=True)
 
             # construct, train optimal model and perform predictions
             clf_svm = SVC(C=grid_search.best_params_['C'],
@@ -109,7 +112,9 @@ class ReferenceClassifier:
                 prev_score = score
                 best_svm = clf_svm
                 best_kernel_index = i
+                best_grid_search = grid_search
 
+        append_hyperparams_file(False, best_grid_search, best_svm, self.dataset_name, DIR, ref=True)
         predictions = best_svm.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
         save_preds(predictions, self.y_test, type(best_svm).__name__, self.dataset_name, False, ref=True)

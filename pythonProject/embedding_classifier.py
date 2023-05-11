@@ -210,11 +210,11 @@ if __name__ == "__main__":
                         help='The index of which command should be completed according to the inputs in utils.')
     args = parser.parse_args()
     if args.idx is None:
-        raise argparse.ArgumentError(None, "Please a possible index from 0-35.")
+        raise argparse.ArgumentError(None, "Please a possible index from 0-26.")
 
     idx = int(args.idx)
     parameters = inputs[idx]
-    log(f'{parameters}', DIR)
+    print(parameters)
     dataset_name = parameters[0]
     clf_model = parameters[1]
     is_fs = parameters[2]
