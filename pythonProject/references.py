@@ -1,13 +1,13 @@
 import csv
 
 import numpy as np
-# from cyged.graph_pkg_core import GED
-# from cyged.graph_pkg_core import Graph
-# from cyged.graph_pkg_core.edit_cost.edit_cost_vector import EditCostVector
-# from cyged.graph_pkg_core.graph.edge import Edge
-# from cyged.graph_pkg_core.graph.label.label_edge import LabelEdge
-# from cyged.graph_pkg_core.graph.label.label_node_vector import LabelNodeVector
-# from cyged.graph_pkg_core.graph.node import Node
+from cyged.graph_pkg_core import GED
+from cyged.graph_pkg_core import Graph
+from cyged.graph_pkg_core.edit_cost.edit_cost_vector import EditCostVector
+from cyged.graph_pkg_core.graph.edge import Edge
+from cyged.graph_pkg_core.graph.label.label_edge import LabelEdge
+from cyged.graph_pkg_core.graph.label.label_node_vector import LabelNodeVector
+from cyged.graph_pkg_core.graph.node import Node
 from sklearn import svm
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV
@@ -155,30 +155,30 @@ def create_custom_metric(test, train, alpha):
 
 
 def graph_edit_distance(gr_1, gr_2, alpha):
-    # ged = GED(EditCostVector(1., 1., 1., 1., "euclidean", alpha=alpha))
-    # ant_gr_1 = data_to_custom_graph(gr_1)
-    # ant_gr_2 = data_to_custom_graph(gr_2)
-    # edit_cost = ged.compute_edit_distance(ant_gr_1, ant_gr_2)
-    return 1  # edit_cost
+    ged = GED(EditCostVector(1., 1., 1., 1., "euclidean", alpha=alpha))
+    ant_gr_1 = data_to_custom_graph(gr_1)
+    ant_gr_2 = data_to_custom_graph(gr_2)
+    edit_cost = ged.compute_edit_distance(ant_gr_1, ant_gr_2)
+    return edit_cost
 
 
 def data_to_custom_graph(data: Data):
-    # n = data.num_nodes
-    # m = data.num_edges
-    #
-    # graph = Graph("", "", n)
-    #
-    # # Add nodes to the custom graph
-    # for i, node_feat in enumerate(data.x.numpy().astype(np.double)):
-    #     graph.add_node(Node(i, LabelNodeVector(node_feat)))
-    #
-    # # Add edges to the custom graph
-    # edge_index = data.edge_index.numpy()
-    # for i in range(0, edge_index.shape[1], 2):
-    #     src, dest = edge_index[:, i]
-    #     graph.add_edge(Edge(src, dest, LabelEdge(0)))
+    n = data.num_nodes
+    m = data.num_edges
 
-    return 1  # graph
+    graph = Graph("", "", n)
+
+    # Add nodes to the custom graph
+    for i, node_feat in enumerate(data.x.numpy().astype(np.double)):
+        graph.add_node(Node(i, LabelNodeVector(node_feat)))
+
+    # Add edges to the custom graph
+    edge_index = data.edge_index.numpy()
+    for i in range(0, edge_index.shape[1], 2):
+        src, dest = edge_index[:, i]
+        graph.add_edge(Edge(src, dest, LabelEdge(0)))
+
+    return graph
 
 
 if __name__ == "__main__":
