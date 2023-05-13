@@ -1,21 +1,24 @@
+import numpy as np
+import torch
 from sklearn.model_selection import KFold
 from torch import nn
-import torch
-import numpy as np
 from torch.optim.lr_scheduler import CyclicLR
 from torch.utils.data import Dataset, DataLoader
+
 from utils import log
 
 DIR = "embedding_classifier"
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 def mean_score_ann(X_train, y):
     """calculates the mean score of an ANN clf using cross-validation"""
-    clf = ANN(X_train.shape[1])
+    clf = ANN(X_train.shape[1]).to(device)
     criterion = nn.CrossEntropyLoss()
-    epochs = 200
+    epochs = 100
     batch_size = 1
-    k = 5
+    k = 3
     splits = KFold(n_splits=k, shuffle=True, random_state=42)
     mean_val_acc = 0
     for fold, (train_idx, val_idx) in enumerate(splits.split(np.arange(len(X_train)))):
@@ -44,7 +47,7 @@ def train_ann(clf, epochs, criterion, train_loader, test_loader):
     for epoch in range(epochs):
         running_loss = 0.0
         for i, data in enumerate(train_loader, 0):
-            inputs, labels = data
+            inputs, labels = data[0].to(device), data[1].to(device)  # move the data to the GPU
             optimizer.zero_grad()
             outputs = clf(inputs)
             loss = criterion(outputs, labels)
@@ -59,7 +62,7 @@ def train_ann(clf, epochs, criterion, train_loader, test_loader):
     labels_total = []
     with torch.no_grad():
         for data in test_loader:
-            inputs, labels = data
+            inputs, labels = data[0].to(device), data[1].to(device)  # move the data to the GPU
             # calculate output by running through the network
             outputs = clf(inputs)
             # get the predictions

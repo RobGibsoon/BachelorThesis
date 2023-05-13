@@ -1,13 +1,13 @@
 import csv
 
 import numpy as np
-from cyged.graph_pkg_core import GED
-from cyged.graph_pkg_core import Graph
-from cyged.graph_pkg_core.edit_cost.edit_cost_vector import EditCostVector
-from cyged.graph_pkg_core.graph.edge import Edge
-from cyged.graph_pkg_core.graph.label.label_edge import LabelEdge
-from cyged.graph_pkg_core.graph.label.label_node_vector import LabelNodeVector
-from cyged.graph_pkg_core.graph.node import Node
+# from cyged.graph_pkg_core import GED
+# from cyged.graph_pkg_core import Graph
+# from cyged.graph_pkg_core.edit_cost.edit_cost_vector import EditCostVector
+# from cyged.graph_pkg_core.graph.edge import Edge
+# from cyged.graph_pkg_core.graph.label.label_edge import LabelEdge
+# from cyged.graph_pkg_core.graph.label.label_node_vector import LabelNodeVector
+# from cyged.graph_pkg_core.graph.node import Node
 from sklearn import svm
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV
@@ -87,17 +87,18 @@ class ReferenceClassifier:
         """train and predict with svm"""
         best_kernel_index = 0
         prev_score = 0
-        best_svm = None
-        best_grid_search = None
+        best_alpha = 0
 
-        param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
-                      'gamma': [0.001, 0.01, 0.1, 1, 10, 100]}
+        small_param_grid = {'C': [0.1, 1, 10],
+                            'gamma': [0.1, 1, 10]}
 
+        # find best alpha with less extensive param_grid
         for i, cur_kernel in enumerate(self.kernelized_data_training):
+            alpha = np.arange(0.05, 1.0, 0.1)[i]
             clf_svm = svm.SVC(kernel='precomputed')
 
             # perform hyper parameter selection
-            grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
+            grid_search = GridSearchCV(clf_svm, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
                                        return_train_score=False, verbose=1)
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
 
@@ -110,11 +111,25 @@ class ReferenceClassifier:
             score = clf_svm.score(cur_kernel, np.ravel(self.y_train))
             if score > prev_score:
                 prev_score = score
-                best_svm = clf_svm
                 best_kernel_index = i
-                best_grid_search = grid_search
+                best_alpha = alpha
 
-        append_hyperparams_file(False, best_grid_search, best_svm, self.dataset_name, DIR, ref=True)
+        # do more detailed optimization now that we have the best kernel (alpha)
+        big_param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
+                          'gamma': [0.001, 0.01, 0.1, 1, 10, 100]}
+        clf_svm = svm.SVC(kernel='precomputed')
+        detailed_grid_search = GridSearchCV(clf_svm, big_param_grid, cv=10, scoring='accuracy', error_score='raise',
+                                            return_train_score=False, verbose=1)
+        detailed_grid_search.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))
+        append_hyperparams_file(False, f"best alpha: {best_alpha}", clf_svm, self.dataset_name, DIR, ref=True)
+        append_hyperparams_file(False, detailed_grid_search, clf_svm, self.dataset_name, DIR, ref=True)
+
+        # do final fitting with best params
+        best_svm = SVC(C=detailed_grid_search.best_params_['C'],
+                       gamma=detailed_grid_search.best_params_['gamma'],
+                       kernel='precomputed')
+
+        best_svm.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))
         predictions = best_svm.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
         save_preds(predictions, self.y_test, type(best_svm).__name__, self.dataset_name, False, ref=True)
@@ -140,30 +155,30 @@ def create_custom_metric(test, train, alpha):
 
 
 def graph_edit_distance(gr_1, gr_2, alpha):
-    ged = GED(EditCostVector(1., 1., 1., 1., "euclidean", alpha=alpha))
-    ant_gr_1 = data_to_custom_graph(gr_1)
-    ant_gr_2 = data_to_custom_graph(gr_2)
-    edit_cost = ged.compute_edit_distance(ant_gr_1, ant_gr_2)
-    return edit_cost
+    # ged = GED(EditCostVector(1., 1., 1., 1., "euclidean", alpha=alpha))
+    # ant_gr_1 = data_to_custom_graph(gr_1)
+    # ant_gr_2 = data_to_custom_graph(gr_2)
+    # edit_cost = ged.compute_edit_distance(ant_gr_1, ant_gr_2)
+    return 1  # edit_cost
 
 
 def data_to_custom_graph(data: Data):
-    n = data.num_nodes
-    m = data.num_edges
+    # n = data.num_nodes
+    # m = data.num_edges
+    #
+    # graph = Graph("", "", n)
+    #
+    # # Add nodes to the custom graph
+    # for i, node_feat in enumerate(data.x.numpy().astype(np.double)):
+    #     graph.add_node(Node(i, LabelNodeVector(node_feat)))
+    #
+    # # Add edges to the custom graph
+    # edge_index = data.edge_index.numpy()
+    # for i in range(0, edge_index.shape[1], 2):
+    #     src, dest = edge_index[:, i]
+    #     graph.add_edge(Edge(src, dest, LabelEdge(0)))
 
-    graph = Graph("", "", n)
-
-    # Add nodes to the custom graph
-    for i, node_feat in enumerate(data.x.numpy().astype(np.double)):
-        graph.add_node(Node(i, LabelNodeVector(node_feat)))
-
-    # Add edges to the custom graph
-    edge_index = data.edge_index.numpy()
-    for i in range(0, edge_index.shape[1], 2):
-        src, dest = edge_index[:, i]
-        graph.add_edge(Edge(src, dest, LabelEdge(0)))
-
-    return graph
+    return 1  # graph
 
 
 if __name__ == "__main__":
