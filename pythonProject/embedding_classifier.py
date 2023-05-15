@@ -3,6 +3,7 @@ import csv
 
 import numpy as np
 import pandas as pd
+import torch
 from sklearn import svm
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
@@ -30,7 +31,7 @@ class EmbeddingClassifier:
         log(f'The dataframe has been read and is of shape {shape[0]}x{shape[1]}', DIR)
         log(f'The dataframe has a total of {self.data.isnull().sum().sum()} NaN values.', DIR)
         log(f'Data read successfully. See head: \n {self.data.head()}', DIR)
-
+        print(f'torch cuda is available: {torch.cuda.is_available()}')
         self.y = self.data['labels'].values
         self.X = self.data.drop('labels', axis=1).values.astype(float)
 
