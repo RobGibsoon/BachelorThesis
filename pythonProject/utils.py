@@ -139,8 +139,13 @@ def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
         file.close()
     else:
         with open('log/hyperparameters/reference_hyperparameters.txt', mode='a') as file:
+            try:
+                best_params = gs.best_params_
+            except AttributeError:
+                # if gs is just a string, then best_params is that string
+                best_params = gs
             file.write(f"The optimal reference hyperparameters selected for {type(clf).__name__} on {dn} "
-                       f"were: {gs.best_params_}\n")
+                       f"were: {best_params}\n")
         file.close()
 
 

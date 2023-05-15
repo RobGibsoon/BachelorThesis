@@ -147,11 +147,8 @@ def create_custom_metric(test, train, alpha):
     for i in range(rows):
         for j in range(i, cols):
             res_mat[i, j] = graph_edit_distance(test[i], train[j], alpha)
-
+    assert np.abs(np.sum(res_mat)) > 0
     return res_mat
-
-    # n = train.shape[0]
-    # return np.random.rand(len(train), len(test))
 
 
 def graph_edit_distance(gr_1, gr_2, alpha):
