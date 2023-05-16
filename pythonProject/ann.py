@@ -9,11 +9,10 @@ from utils import log
 
 DIR = "embedding_classifier"
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
-def mean_score_ann(X_train, y):
+def mean_score_ann(X_train, y, device):
     """calculates the mean score of an ANN clf using cross-validation"""
+    log(f'Device being used: {device}', DIR)
     clf = ANN(X_train.shape[1]).to(device)
     criterion = nn.CrossEntropyLoss()
     epochs = 100
@@ -28,15 +27,16 @@ def mean_score_ann(X_train, y):
         test_data = Data(X_train[val_idx, :], y[val_idx])
         train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=0)
         test_loader = DataLoader(test_data, batch_size=batch_size)
-        val_acc = train_ann(clf, epochs, criterion, train_loader, test_loader)[0]
+        val_acc = train_ann(clf, epochs, criterion, train_loader, test_loader, device)[0]
         mean_val_acc += val_acc
 
     mean_val_acc /= k
     return mean_val_acc
 
 
-def train_ann(clf, epochs, criterion, train_loader, test_loader):
+def train_ann(clf, epochs, criterion, train_loader, test_loader, device):
     """used to train an ANN"""
+
     optimizer = torch.optim.SGD(clf.parameters(), lr=0.1)
     scheduler = CyclicLR(optimizer,
                          base_lr=0.0001,

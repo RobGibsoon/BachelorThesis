@@ -108,13 +108,13 @@ class EmbeddingClassifier:
 
         return test_accuracy
 
-    def predict_ann(self):
+    def predict_ann(self, device):
         """train and predict 5 ANN's"""
 
         clf = ANN(self.X_train.shape[1])
         if self.feature_selection:
             clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name)
+                                                            self.dataset_name, device)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
 
@@ -129,7 +129,7 @@ class EmbeddingClassifier:
             test_data = Data(clf_X_test, self.y_test)
             train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=0)
             test_loader = DataLoader(test_data, batch_size=batch_size)
-            accuracy, predictions, labels = train_ann(clf_ann, epochs, criterion, train_loader, test_loader)
+            accuracy, predictions, labels = train_ann(clf_ann, epochs, criterion, train_loader, test_loader, device)
             accuracies = np.append(accuracies, accuracy)
             save_preds(predictions, self.y_test, type(clf_ann).__name__ + f"{i}", self.dataset_name,
                        self.feature_selection)
@@ -142,7 +142,7 @@ class EmbeddingClassifier:
         return avg_accuracy, high_deviation, low_deviation
 
 
-def get_best_feature_set(clf, X_train, y):
+def get_best_feature_set(clf, X_train, y, device):
     """returns the best set for classifying using an SVM/KNN clf, uses cross-validation and takes the set with the
     highest mean accuracy"""
     n_features = X_train.shape[1]
@@ -158,7 +158,7 @@ def get_best_feature_set(clf, X_train, y):
             count += 1
     else:
         for subset in all_subsets(np.arange(n_features)):
-            score = mean_score_ann(np.reshape(X_train[:, subset], (X_train.shape[0], -1)), y)
+            score = mean_score_ann(np.reshape(X_train[:, subset], (X_train.shape[0], -1)), y, device)
             if score > best_score:
                 best_score, best_subset = score, subset
             log(f'subset {count}/{2 ** n_features - 1}', DIR)
@@ -168,9 +168,9 @@ def get_best_feature_set(clf, X_train, y):
     return np.array(subset), best_score
 
 
-def feature_selected_sets(clf, X_train, X_test, y, dn):
+def feature_selected_sets(clf, X_train, X_test, y, dn, device):
     """returns the modified training and test sets after performing feature selection on them"""
-    best_subset, best_score = get_best_feature_set(clf, X_train, y)
+    best_subset, best_score = get_best_feature_set(clf, X_train, y, device)
     features, count = get_feature_names(best_subset)
     append_features_file(clf, features, count, dn)
     X_train_fs = X_train[:, best_subset]
@@ -216,11 +216,15 @@ if __name__ == "__main__":
 
     idx = int(args.idx)
     parameters = inputs[idx]
-    print(parameters)
+    log(f'{parameters}', DIR)
     dataset_name = parameters[0]
     clf_model = parameters[1]
     is_fs = parameters[2]
     is_reference = parameters[3]
+
+    # device used for ANNs
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=is_fs)
     if not is_reference:
         if clf_model.lower() == 'knn':
@@ -233,7 +237,7 @@ if __name__ == "__main__":
             append_accuracies_file(dataset_name, clf_model, is_fs, acc, DIR)
         elif clf_model.lower() == 'ann':
             print(f'using ann and {dataset_name} and {is_fs}')
-            avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
+            avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann(device)
             log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
             append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, DIR)
