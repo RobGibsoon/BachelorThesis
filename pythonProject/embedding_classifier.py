@@ -257,7 +257,7 @@ if __name__ == "__main__":
             log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
             append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
         elif clf_model.lower() == 'ann':
-            avg_accuracy, high_deviation, low_deviation = reference_classifier.predict_ann()
+            avg_accuracy, high_deviation, low_deviation = reference_classifier.predict_ann(device)
             log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
             append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, ref_dir, ref=True)

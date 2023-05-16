@@ -136,7 +136,7 @@ class ReferenceClassifier:
 
         return test_accuracy
 
-    def predict_ann(self):
+    def predict_ann(self, device):
         return 100.0, 3.0, 2.0
 
 
