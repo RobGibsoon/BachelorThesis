@@ -168,7 +168,7 @@ def get_best_feature_set(clf, X_train, y, device):
     return np.array(subset), best_score
 
 
-def feature_selected_sets(clf, X_train, X_test, y, dn, device):
+def feature_selected_sets(clf, X_train, X_test, y, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
     best_subset, best_score = get_best_feature_set(clf, X_train, y, device)
     features, count = get_feature_names(best_subset)
