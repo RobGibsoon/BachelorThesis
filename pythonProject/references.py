@@ -16,7 +16,7 @@ from sklearn.svm import SVC
 from torch_geometric.data import Data
 from torch_geometric.datasets import TUDataset
 
-from utils import append_hyperparams_file, save_preds, append_accuracies_file
+from utils import append_hyperparams_file, save_preds, append_accuracies_file, log
 
 DIR = "references"
 
@@ -55,7 +55,7 @@ class ReferenceClassifier:
         k_range = list(range(1, 31))
         param_grid = {'algorithm': ['brute'],
                       'n_neighbors': k_range}
-
+        log('Finding best alpha on ptc_mr', DIR)
         for i, cur_kernel in enumerate(self.kernelized_data_training):
             clf_knn = KNeighborsClassifier(metric='precomputed')
 
@@ -63,6 +63,7 @@ class ReferenceClassifier:
             grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False,
                                        verbose=1)
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
+            log(f'Completed knn gridsearch: ({i + 1}/{len(self.kernelized_data_training)}) ', DIR)
 
             # construct, train optimal model and perform predictions
             clf_knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
@@ -76,7 +77,7 @@ class ReferenceClassifier:
                 best_knn = clf_knn
                 best_kernel_index = i
                 best_grid_search = grid_search
-
+        log(f'finished knn fitting and found best alpha {np.arange(0.05, 1.0, 0.1)[best_kernel_index]}')
         append_hyperparams_file(False, best_grid_search, best_knn, self.dataset_name, DIR, ref=True)
         predictions = best_knn.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
@@ -88,7 +89,6 @@ class ReferenceClassifier:
         best_kernel_index = 0
         prev_score = 0
         best_alpha = 0
-
         small_param_grid = {'C': [0.1, 1, 10],
                             'gamma': [0.1, 1, 10]}
 
@@ -100,6 +100,7 @@ class ReferenceClassifier:
             # perform hyper parameter selection
             grid_search = GridSearchCV(clf_svm, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
                                        return_train_score=False, verbose=1)
+            log(f'Completing svm girdsearch with small param grid ({i + 1}/{len(self.kernelized_data_training)})', DIR)
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
 
             # construct, train optimal model and perform predictions
@@ -113,6 +114,7 @@ class ReferenceClassifier:
                 prev_score = score
                 best_kernel_index = i
                 best_alpha = alpha
+        log(f'Completed small svm girdsearch with small param grid and found {best_alpha}', DIR)
 
         # do more detailed optimization now that we have the best kernel (alpha)
         big_param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
@@ -120,7 +122,10 @@ class ReferenceClassifier:
         clf_svm = svm.SVC(kernel='precomputed')
         detailed_grid_search = GridSearchCV(clf_svm, big_param_grid, cv=10, scoring='accuracy', error_score='raise',
                                             return_train_score=False, verbose=1)
+        log(f'Completing svm girdsearch with detailed param grid.', DIR)
+
         detailed_grid_search.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))
+        log('finished detailed svm gridsearch', DIR)
         append_hyperparams_file(False, f"best alpha: {best_alpha}", clf_svm, self.dataset_name, DIR, ref=True)
         append_hyperparams_file(False, detailed_grid_search, clf_svm, self.dataset_name, DIR, ref=True)
 
@@ -128,7 +133,7 @@ class ReferenceClassifier:
         best_svm = SVC(C=detailed_grid_search.best_params_['C'],
                        gamma=detailed_grid_search.best_params_['gamma'],
                        kernel='precomputed')
-
+        log('fiting best_svm', DIR)
         best_svm.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))
         predictions = best_svm.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
