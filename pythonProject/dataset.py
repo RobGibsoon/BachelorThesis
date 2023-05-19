@@ -28,7 +28,7 @@ def create_embedded_graph_set(dataset, wanted_indices):
             assert not is_connected(dataset[i])  # this assertion is made so that we make sure if an embedding fails,
             # the reason behind the fail is that the graph isn't connected and not some other unexpected error occurs
             unsuccessful_count += 1
-    print(f'Finished embedding with successfully on {successful_count}/{len(dataset)} graphs but failed on '
+    print(f'Finished embedding successfully on {successful_count}/{len(dataset)} graphs but failed on '
           f'{unsuccessful_count}/{len(dataset)} graphs')
 
     save_filter_split_file(successful_indices, dataset_name)
@@ -130,7 +130,7 @@ def create_df_and_save_to_csv(data, dataset_name):
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
+    dataset = TUDataset(root='/tmp/Mutagenicity', name='Mutagenicity')
     dataset_name = dataset.name
     wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
                       EDGES, SCHULTZ]

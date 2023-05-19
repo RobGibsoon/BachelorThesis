@@ -118,7 +118,7 @@ class EmbeddingClassifier:
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
 
-        ann_list = [ANN(clf_X_train.shape[1]) for i in range(5)]
+        ann_list = [ANN(clf_X_train.shape[1]).to(device) for i in range(5)]
         accuracies = np.array([])
         for i, clf_ann in enumerate(ann_list):
             criterion = nn.CrossEntropyLoss()
