@@ -37,8 +37,8 @@ inputs = {
     24: ("MUTAG", "ann", None, True),
     25: ("MUTAG", "knn", None, True),
     26: ("MUTAG", "svm", None, True),
-    27: ("PTC_MR", "ann", False, False),
-    28: ("PTC_MR", "knn", False, False),
+    27: ("PTC_MR_bc", "ann", False, False),
+    28: ("PTC_MR_bw", "knn", False, False),
 }
 
 BALABAN = 0
