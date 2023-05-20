@@ -1,8 +1,9 @@
 import numpy as np
 import torch
 from numpy.linalg import LinAlgError
-from utils import get_distance_matrix, get_degrees
 from torch_geometric.utils import to_dense_adj
+
+from utils import get_distance_matrix, get_degrees
 
 
 def create_zagreb_index(graph):
@@ -78,8 +79,8 @@ def create_estrada_index(graph):
     if np.iscomplexobj(estrada_index):
         num_edges = graph.num_edges
         num_nodes = graph.num_nodes
-        k = np.sqrt(6*num_edges/num_nodes)
-        estrada_index = num_nodes/2 * (np.exp(k)-np.exp(-k)/k)
+        k = np.sqrt(6 * num_edges / num_nodes)
+        estrada_index = num_nodes / 2 * (np.exp(k) - np.exp(-k) / k)
         assert not np.iscomplex(estrada_index)
     return np.array(estrada_index)
 
@@ -131,6 +132,28 @@ def create_balaban_index(graph):
     return np.array(num_edges / (num_cycles + 1) * sum_dist_neighbours)
 
 
+def create_balaban_index_wrong(graph):
+    """balaban-j-index as defined by:  Alexandru T. Balaban: Highly Discriminating Distance-based Topological Index
+    https://doi.org/10.1016/0009-2614(82)80009-2
+    this was the first incorrect implementation of the balaban index, it generates a lot better results however"""
+    assert graph.is_undirected()
+    shortest_dist_mat = get_distance_matrix(graph)
+    dist_sums = np.sum(shortest_dist_mat, axis=1)
+    num_nodes = graph.num_nodes
+    num_edges = graph.num_edges
+    num_cycles = num_edges - num_nodes + 1  # according to wikipedia
+
+    graph.coalesce()  # sort edge_index
+    edges = set(tuple(sorted(edge)) for edge in graph.edge_index.t().tolist())
+    sum_dist_neighbours = 0
+    for edge in edges:
+        s1 = dist_sums[edge[0]]
+        s2 = dist_sums[edge[1]]
+        sum_dist_neighbours += 1 / np.sqrt(s1 * s2)
+
+    return np.array(num_edges / (num_cycles + 1) * sum_dist_neighbours)
+
+
 def create_szeged_index(graph):
     """szeged index is the sum over each edge (u,v) of the product n1(u)*n2(v)
     where n1(u) is the number of vertices closer to u and n2 respectively closer to v
@@ -141,7 +164,7 @@ def create_szeged_index(graph):
     n1 = np.sum(shortest_dist_mat[edges[:, 0]] < shortest_dist_mat[edges[:, 1]], axis=1)
     n2 = np.sum(shortest_dist_mat[edges[:, 0]] > shortest_dist_mat[edges[:, 1]], axis=1)
     szeged_index = np.sum(n1 * n2)
-    return np.array(szeged_index/2)
+    return np.array(szeged_index / 2)
 
 
 def number_edges_closer_to_uv(edge, edges, shortest_dist_mat):
@@ -161,6 +184,7 @@ def number_edges_closer_to_uv(edge, edges, shortest_dist_mat):
                 min(shortest_dist_mat[a, u], shortest_dist_mat[b, u]):
             n2 += 1
     return n1, n2
+
 
 def create_padmakar_ivan_index(graph):
     """padmakar-ivan index is the sum over each edge (u,v) of the product n1(u)*n2(v)
@@ -191,5 +215,5 @@ def create_schultz_index(graph):
     shortest_dist_mat = get_distance_matrix(graph)
     adj_short = np.sum(np.squeeze(adj + shortest_dist_mat), axis=1)
     assert adj_short.shape == degrees.shape
-    schultz_index = np.sum(degrees*adj_short)
+    schultz_index = np.sum(degrees * adj_short)
     return np.array(int(schultz_index))

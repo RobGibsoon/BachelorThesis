@@ -61,7 +61,8 @@ class EmbeddingClassifier:
 
         # perform hyper parameter selection
         clf_knn.fit(clf_X_train, self.y_train)
-        grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1)
+        grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1,
+                                   n_jobs=-1)
         grid_search.fit(clf_X_train, self.y_train)
         append_hyperparams_file(self.feature_selection, grid_search, clf_knn, self.dataset_name, DIR)
 
@@ -92,7 +93,7 @@ class EmbeddingClassifier:
 
         # perform hyper parameter selection
         grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
-                                   return_train_score=False, verbose=1)
+                                   return_train_score=False, verbose=1, n_jobs=-1)
         grid_search.fit(clf_X_train, self.y_train)
         append_hyperparams_file(self.feature_selection, grid_search, clf_svm, self.dataset_name, DIR)
 

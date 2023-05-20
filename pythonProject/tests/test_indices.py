@@ -1,13 +1,17 @@
 import unittest
 from unittest import TestCase
 
+import matplotlib
+import networkx as nx
 import numpy as np
 import torch
+from matplotlib import pyplot as plt
+from torch_geometric.data import Data
+from torch_geometric.utils import to_networkx
+
 from indices import create_zagreb_index, create_polarity_nr_index, \
     create_wiener_index, create_randic_index, create_estrada_index, create_balaban_index, create_padmakar_ivan_index, \
-    create_szeged_index, create_schultz_index
-from torch_geometric.data import Data
-import matplotlib
+    create_szeged_index, create_schultz_index, create_balaban_index_wrong
 
 matplotlib.use('TkAgg')
 
@@ -39,6 +43,14 @@ class Test(TestCase):
                                    [1, 0, 2, 1, 3, 2, 4, 3, 2, 5, 7, 4, 6, 5]], dtype=torch.long)
     x_balban_test = torch.tensor([[1], [1], [1], [1], [1], [1], [1], [1]], dtype=torch.float)
 
+    ei_propane_test = torch.tensor([[0, 1, 1, 2, 3, 4, 5, 0, 0, 0, 6, 7, 1, 1, 8, 9, 10, 2, 2, 2],
+                                    [1, 0, 2, 1, 0, 0, 0, 3, 4, 5, 1, 1, 6, 7, 2, 2, 2, 8, 9, 10]], dtype=torch.long)
+    x_propane_test = torch.tensor([[1], [2], [3], [4], [5], [6], [7], [8], [9], [10], [11]], dtype=torch.float)
+
+    ei_dep_propane = torch.tensor([[0, 1, 1, 2],
+                                   [1, 0, 2, 1]], dtype=torch.long)
+    x_dep_propane = torch.tensor([[1], [1], [1]], dtype=torch.float)
+
     ei_schultz_test = torch.tensor([[0, 1, 1, 2, 1, 3, 3, 4],
                                     [1, 0, 2, 1, 3, 1, 4, 3]], dtype=torch.long)
     x_schultz_test = torch.tensor([[1], [1], [1], [1], [1]], dtype=torch.float)
@@ -50,6 +62,8 @@ class Test(TestCase):
     data_example_pi = Data(x=x_example_bigger, edge_index=edge_index_example_pi)
     data_balaban_test = Data(x=x_balban_test, edge_index=ei_balban_test)
     data_schultz = Data(x=x_schultz_test, edge_index=ei_schultz_test)
+    data_propane = Data(x=x_propane_test, edge_index=ei_propane_test)
+    data_depleted_propane = Data(x=x_dep_propane, edge_index=ei_dep_propane)
 
     def test_num_edges(self):
         self.assertTrue(self.data_directed.num_edges, 3)
@@ -135,6 +149,33 @@ class Test(TestCase):
         "example from https://de.wikipedia.org/wiki/Balaban-J-Index"
         expected = np.array(3.07437)
         result = create_balaban_index(self.data_balaban_test)
+        self.assertTrue(np.isclose(result, expected),
+                        f'creating balaban index failed: expected {expected} but got {result}')
+
+    def test_balaban_propane(self):
+        "example from https://de.wikipedia.org/wiki/Balaban-J-Index"
+        expected = np.array(4.748408577925169)
+        g = to_networkx(self.data_propane)
+        nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
+        plt.show()
+        result = create_balaban_index_wrong(self.data_propane)
+        self.assertTrue(np.isclose(result, expected),
+                        f'creating balaban index failed: expected {expected} but got {result}')
+
+    def test_dep_prop_balban(self):
+        "example from https://de.wikipedia.org/wiki/Balaban-J-Index"
+        expected = np.array(3.07437)
+        g = to_networkx(self.data_depleted_propane)
+        nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
+        plt.show()
+        result = create_balaban_index(self.data_depleted_propane)
+        self.assertTrue(np.isclose(result, expected),
+                        f'creating balaban index failed: expected {expected} but got {result}')
+
+    def test_create_balaban_index_wrong(self):
+        "example from https://de.wikipedia.org/wiki/Balaban-J-Index"
+        expected = np.array(3.07437)
+        result = create_balaban_index_wrong(self.data_balaban_test)
         self.assertTrue(np.isclose(result, expected),
                         f'creating balaban index failed: expected {expected} but got {result}')
 

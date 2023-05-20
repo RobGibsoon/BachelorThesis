@@ -36,7 +36,9 @@ inputs = {
     23: ("Mutagenicity", "svm", None, True),
     24: ("MUTAG", "ann", None, True),
     25: ("MUTAG", "knn", None, True),
-    26: ("MUTAG", "svm", None, True)
+    26: ("MUTAG", "svm", None, True),
+    27: ("PTC_MR", "ann", False, False),
+    28: ("PTC_MR", "knn", False, False),
 }
 
 BALABAN = 0

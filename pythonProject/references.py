@@ -61,7 +61,7 @@ class ReferenceClassifier:
 
             # perform hyper parameter selection
             grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False,
-                                       verbose=1)
+                                       verbose=1, n_jobs=-1)
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
             log(f'Completed knn gridsearch: ({i + 1}/{len(self.kernelized_data_training)}) ', DIR)
 
@@ -99,7 +99,7 @@ class ReferenceClassifier:
 
             # perform hyper parameter selection
             grid_search = GridSearchCV(clf_svm, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
-                                       return_train_score=False, verbose=1)
+                                       return_train_score=False, verbose=1, n_jobs=-1)
             log(f'Completing svm girdsearch with small param grid ({i + 1}/{len(self.kernelized_data_training)})', DIR)
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
 
@@ -121,7 +121,7 @@ class ReferenceClassifier:
                           'gamma': [0.001, 0.01, 0.1, 1, 10, 100]}
         clf_svm = svm.SVC(kernel='precomputed')
         detailed_grid_search = GridSearchCV(clf_svm, big_param_grid, cv=10, scoring='accuracy', error_score='raise',
-                                            return_train_score=False, verbose=1)
+                                            return_train_score=False, verbose=1, n_jobs=-1)
         log(f'Completing svm girdsearch with detailed param grid.', DIR)
 
         detailed_grid_search.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))
