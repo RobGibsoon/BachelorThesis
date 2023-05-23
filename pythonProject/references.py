@@ -1,6 +1,5 @@
 import csv
 
-import numpy as np
 from cyged.graph_pkg_core import GED
 from cyged.graph_pkg_core import Graph
 from cyged.graph_pkg_core.edit_cost.edit_cost_vector import EditCostVector
@@ -91,7 +90,7 @@ class ReferenceClassifier:
         best_kernel_index = 0
         prev_score = 0
         best_alpha = 0
-        small_param_grid = {'C': [1, 10]}
+        small_param_grid = {'C': [0.01, 0.1, 1, 10]}
 
         # find best alpha with less extensive param_grid
         for i, cur_kernel in enumerate(self.kernelized_data_training):
@@ -114,7 +113,7 @@ class ReferenceClassifier:
                 prev_score = score
                 best_kernel_index = i
                 best_alpha = alpha
-        log(f'Completed small svm girdsearch with small param grid and found {best_alpha}', DIR)
+        log(f'Completed small svm girdsearch with small param grid and found alpha = {best_alpha}', DIR)
 
         # do more detailed optimization now that we have the best kernel (alpha)
         big_param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100]}
@@ -149,7 +148,7 @@ def create_custom_metric_parallel(test, train, alpha):
     res_mat = np.zeros((rows, cols))
 
     # Create a pool of worker processes
-    with Pool(cpu_count()-3) as pool:
+    with Pool(cpu_count() - 3) as pool:
         # Construct the arguments for each task
         tasks = [(i, test[i], train, alpha) for i in range(rows)]
 
@@ -172,8 +171,10 @@ def create_custom_metric(test, train, alpha):
     assert np.abs(np.sum(res_mat)) > 0
     return res_mat
 
+
 import numpy as np
 from multiprocessing import Pool, cpu_count
+
 
 def compute_row(args):
     i, test_i, train, alpha = args

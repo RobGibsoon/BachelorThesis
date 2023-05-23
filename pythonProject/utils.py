@@ -118,12 +118,14 @@ def get_feature_names(feature_subset):
 
 
 def append_features_file(clf, features, count, dn):
+    Path(f"log/features/").mkdir(parents=True, exist_ok=True)
     with open('log/features/features.txt', mode='a') as file:
         file.write(f"The {count} optimal features selected for {type(clf).__name__} on {dn} were: {features}\n")
     file.close()
 
 
 def append_accuracies_file(dn, clf, fs, acc, dir, index="", ref=False):
+    Path(f"log/accuracies/").mkdir(parents=True, exist_ok=True)
     if not ref:
         with open('log/accuracies/accuracies.txt', mode='a') as file:
             file.write(f'Accuracy for {dn} {clf}{index} fs={fs}: {acc}\n')
@@ -156,6 +158,7 @@ def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
 
 def save_preds(preds, labels, clf, dn, fs, ref=False):
     """saves labels and predictions to a csv-file"""
+    Path(f"log/predictions/").mkdir(parents=True, exist_ok=True)
     if not ref:
         data = {"preds": np.ravel(preds), "labels": np.ravel(labels)}
         df = pd.DataFrame(data)
