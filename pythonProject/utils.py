@@ -1,4 +1,5 @@
 from itertools import chain, combinations
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
@@ -78,6 +79,7 @@ def is_connected(graph):
 
 def log(text, dir):
     """used to print all the print statements into a log.txt file"""
+    Path(f"log/{dir}").mkdir(parents=True, exist_ok=True)
     with open(f'log/{dir}/log.txt', mode='a') as file:
         file.write(text + "\n")
     file.close()
@@ -134,6 +136,7 @@ def append_accuracies_file(dn, clf, fs, acc, dir, index="", ref=False):
 
 
 def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
+    Path(f"log/hyperparameters/").mkdir(parents=True, exist_ok=True)
     if not ref:
         with open('log/hyperparameters/hyperparameters.txt', mode='a') as file:
             file.write(f"The optimal hyperparameters selected for {type(clf).__name__} on {dn} and fs = "

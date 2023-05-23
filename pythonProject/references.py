@@ -40,7 +40,7 @@ class ReferenceClassifier:
         log(f'Finished generating train-data kernel', DIR)
         self.kernelized_data_test = [create_custom_metric(test_graphs, train_graphs, alpha) for alpha in alpha_values]
         log(f'Finished generating test-data kernel', DIR)
-        
+
     def get_csv_idx_split(self, dn, idx_type):
         file = open(f"log/index_splits/{dn}_{idx_type}_split.csv", "r")
         idx_split = list(csv.reader(file, delimiter=','))
@@ -143,15 +143,45 @@ class ReferenceClassifier:
         return 100.0, 3.0, 2.0
 
 
+def create_custom_metric_parallel(test, train, alpha):
+    rows = len(test)
+    cols = len(train)
+    res_mat = np.zeros((rows, cols))
+
+    # Create a pool of worker processes
+    with Pool(cpu_count()-3) as pool:
+        # Construct the arguments for each task
+        tasks = [(i, test[i], train, alpha) for i in range(rows)]
+
+        # Use imap_unordered to get the results as they become available
+        for i, res_row in pool.imap_unordered(compute_row, tasks):
+            # Store the result in the appropriate row of the matrix
+            res_mat[i] = res_row
+
+    res_mat = res_mat + res_mat.T - np.diag(np.diag(res_mat))
+    return res_mat
+
+
 def create_custom_metric(test, train, alpha):
     rows = len(test)
     cols = len(train)
     res_mat = np.zeros((rows, cols))
     for i in range(rows):
-        for j in range(i, cols):
+        for j in range(cols):
             res_mat[i, j] = graph_edit_distance(test[i], train[j], alpha)
     assert np.abs(np.sum(res_mat)) > 0
     return res_mat
+
+import numpy as np
+from multiprocessing import Pool, cpu_count
+
+def compute_row(args):
+    i, test_i, train, alpha = args
+    cols = len(train)
+    res_row = np.zeros(cols)
+    for j in range(cols):
+        res_row[j] = graph_edit_distance(test_i, train[j], alpha)
+    return i, res_row
 
 
 def graph_edit_distance(gr_1, gr_2, alpha):
