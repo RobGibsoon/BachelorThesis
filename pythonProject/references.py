@@ -37,8 +37,10 @@ class ReferenceClassifier:
         alpha_values = np.arange(0.05, 1.0, 0.1)
         self.kernelized_data_training = [create_custom_metric(train_graphs, train_graphs, alpha) for alpha in
                                          alpha_values]
+        log(f'Finished generating train-data kernel', DIR)
         self.kernelized_data_test = [create_custom_metric(test_graphs, train_graphs, alpha) for alpha in alpha_values]
-
+        log(f'Finished generating test-data kernel', DIR)
+        
     def get_csv_idx_split(self, dn, idx_type):
         file = open(f"log/index_splits/{dn}_{idx_type}_split.csv", "r")
         idx_split = list(csv.reader(file, delimiter=','))
