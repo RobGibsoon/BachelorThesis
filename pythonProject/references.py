@@ -89,8 +89,7 @@ class ReferenceClassifier:
         best_kernel_index = 0
         prev_score = 0
         best_alpha = 0
-        small_param_grid = {'C': [0.1, 1, 10],
-                            'gamma': [0.1, 1, 10]}
+        small_param_grid = {'C': [0.1, 1, 10]}
 
         # find best alpha with less extensive param_grid
         for i, cur_kernel in enumerate(self.kernelized_data_training):
@@ -105,7 +104,6 @@ class ReferenceClassifier:
 
             # construct, train optimal model and perform predictions
             clf_svm = SVC(C=grid_search.best_params_['C'],
-                          gamma=grid_search.best_params_['gamma'],
                           kernel='precomputed')
 
             clf_svm.fit(cur_kernel, np.ravel(self.y_train))
@@ -117,8 +115,7 @@ class ReferenceClassifier:
         log(f'Completed small svm girdsearch with small param grid and found {best_alpha}', DIR)
 
         # do more detailed optimization now that we have the best kernel (alpha)
-        big_param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100],
-                          'gamma': [0.001, 0.01, 0.1, 1, 10, 100]}
+        big_param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100]}
         clf_svm = svm.SVC(kernel='precomputed')
         detailed_grid_search = GridSearchCV(clf_svm, big_param_grid, cv=10, scoring='accuracy', error_score='raise',
                                             return_train_score=False, verbose=1, n_jobs=-1)
@@ -131,7 +128,6 @@ class ReferenceClassifier:
 
         # do final fitting with best params
         best_svm = SVC(C=detailed_grid_search.best_params_['C'],
-                       gamma=detailed_grid_search.best_params_['gamma'],
                        kernel='precomputed')
         log('fiting best_svm', DIR)
         best_svm.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))

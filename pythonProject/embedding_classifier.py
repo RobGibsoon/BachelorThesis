@@ -1,5 +1,6 @@
 import argparse
 import csv
+import random
 
 import numpy as np
 import pandas as pd
@@ -120,8 +121,11 @@ class EmbeddingClassifier:
             clf_X_train, clf_X_test = self.X_train, self.X_test
 
         ann_list = [ANN(clf_X_train.shape[1]).to(device) for i in range(5)]
+        seed_list = [random.randint(0, 9999999) for i in range(5)]
         accuracies = np.array([])
         for i, clf_ann in enumerate(ann_list):
+            seed = seed_list[i]
+            torch.manual_seed(seed)
             criterion = nn.CrossEntropyLoss()
             epochs = 300
             batch_size = 1
