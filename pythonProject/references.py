@@ -89,7 +89,7 @@ class ReferenceClassifier:
         best_kernel_index = 0
         prev_score = 0
         best_alpha = 0
-        small_param_grid = {'C': [0.1, 1, 10]}
+        small_param_grid = {'C': [1, 10]}
 
         # find best alpha with less extensive param_grid
         for i, cur_kernel in enumerate(self.kernelized_data_training):
