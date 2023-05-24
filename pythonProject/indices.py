@@ -77,7 +77,7 @@ def create_estrada_index(graph):
     estrada_index = np.sum(np.exp(eigenvalues))
 
     if np.iscomplexobj(estrada_index):
-        num_edges = graph.num_edges
+        num_edges = int(len(graph.edge_index[1]) / 2)
         num_nodes = graph.num_nodes
         k = np.sqrt(6 * num_edges / num_nodes)
         estrada_index = num_nodes / 2 * (np.exp(k) - np.exp(-k) / k)
@@ -95,22 +95,6 @@ def remove_same_edges(edges, idx1, idx2):
 def create_balaban_index(graph):
     """balaban-j-index as defined by:  Alexandru T. Balaban: Highly Discriminating Distance-based Topological Index
     https://doi.org/10.1016/0009-2614(82)80009-2"""
-    # assert graph.is_undirected()
-    # shortest_dist_mat = get_distance_matrix(graph)
-    # dist_sums = np.sum(shortest_dist_mat, axis=1)
-    # num_nodes = graph.num_nodes
-    # num_edges = graph.num_edges
-    # num_cycles = num_edges - num_nodes + 1  # according to wikipedia
-    #
-    # graph.coalesce()  # sort edge_index
-    # edges = set(tuple(sorted(edge)) for edge in graph.edge_index.t().tolist())
-    # sum_dist_neighbours = 0
-    # for edge in edges:
-    #     s1 = dist_sums[edge[0]]
-    #     s2 = dist_sums[edge[1]]
-    #     sum_dist_neighbours += 1 / np.sqrt(s1 * s2)
-    #
-    # return np.array(num_edges / (num_cycles + 1) * sum_dist_neighbours)
     assert graph.is_undirected()
     shortest_dist_mat = get_distance_matrix(graph)
     dist_sums = np.sum(shortest_dist_mat, axis=1)
@@ -128,28 +112,6 @@ def create_balaban_index(graph):
         idx1 = int(edges[0][0])
         idx2 = int(edges[0][1])
         remove_same_edges(edges, idx1, idx2)
-
-    return np.array(num_edges / (num_cycles + 1) * sum_dist_neighbours)
-
-
-def create_balaban_index_wrong(graph):
-    """balaban-j-index as defined by:  Alexandru T. Balaban: Highly Discriminating Distance-based Topological Index
-    https://doi.org/10.1016/0009-2614(82)80009-2
-    this was the first incorrect implementation of the balaban index, it generates a lot better results however"""
-    assert graph.is_undirected()
-    shortest_dist_mat = get_distance_matrix(graph)
-    dist_sums = np.sum(shortest_dist_mat, axis=1)
-    num_nodes = graph.num_nodes
-    num_edges = graph.num_edges
-    num_cycles = num_edges - num_nodes + 1  # according to wikipedia
-
-    graph.coalesce()  # sort edge_index
-    edges = set(tuple(sorted(edge)) for edge in graph.edge_index.t().tolist())
-    sum_dist_neighbours = 0
-    for edge in edges:
-        s1 = dist_sums[edge[0]]
-        s2 = dist_sums[edge[1]]
-        sum_dist_neighbours += 1 / np.sqrt(s1 * s2)
 
     return np.array(num_edges / (num_cycles + 1) * sum_dist_neighbours)
 

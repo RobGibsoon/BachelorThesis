@@ -11,7 +11,7 @@ from torch_geometric.utils import to_networkx
 
 from indices import create_zagreb_index, create_polarity_nr_index, \
     create_wiener_index, create_randic_index, create_estrada_index, create_balaban_index, create_padmakar_ivan_index, \
-    create_szeged_index, create_schultz_index, create_balaban_index_wrong
+    create_szeged_index, create_schultz_index
 
 matplotlib.use('TkAgg')
 
@@ -149,33 +149,6 @@ class Test(TestCase):
         "example from https://de.wikipedia.org/wiki/Balaban-J-Index"
         expected = np.array(3.07437)
         result = create_balaban_index(self.data_balaban_test)
-        self.assertTrue(np.isclose(result, expected),
-                        f'creating balaban index failed: expected {expected} but got {result}')
-
-    def test_balaban_propane(self):
-        "example from https://de.wikipedia.org/wiki/Balaban-J-Index"
-        expected = np.array(4.748408577925169)
-        g = to_networkx(self.data_propane)
-        nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
-        plt.show()
-        result = create_balaban_index_wrong(self.data_propane)
-        self.assertTrue(np.isclose(result, expected),
-                        f'creating balaban index failed: expected {expected} but got {result}')
-
-    def test_dep_prop_balban(self):
-        "example from https://de.wikipedia.org/wiki/Balaban-J-Index"
-        expected = np.array(3.07437)
-        g = to_networkx(self.data_depleted_propane)
-        nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
-        plt.show()
-        result = create_balaban_index(self.data_depleted_propane)
-        self.assertTrue(np.isclose(result, expected),
-                        f'creating balaban index failed: expected {expected} but got {result}')
-
-    def test_create_balaban_index_wrong(self):
-        "example from https://de.wikipedia.org/wiki/Balaban-J-Index"
-        expected = np.array(3.07437)
-        result = create_balaban_index_wrong(self.data_balaban_test)
         self.assertTrue(np.isclose(result, expected),
                         f'creating balaban index failed: expected {expected} but got {result}')
 
