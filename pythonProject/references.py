@@ -95,7 +95,7 @@ class ReferenceClassifier:
         """train and predict with svm"""
         best_kernel_index = 0
         prev_score = 0
-        best_alpha = 0
+        best_alpha = 0.05
         small_param_grid = {'C': [0.01, 0.1, 1, 10]}
         self.kernelized_data_training = [data_training * (-1) for data_training in
                                          self.kernelized_data_training]
@@ -104,7 +104,6 @@ class ReferenceClassifier:
 
         # find best alpha with less extensive param_grid
         for i, cur_kernel in enumerate(self.kernelized_data_training):
-            alpha = np.arange(0.05, 1.0, 0.1)[i]
             clf_svm = svm.SVC(kernel='precomputed')
 
             # perform hyper parameter selection
@@ -123,8 +122,7 @@ class ReferenceClassifier:
             if score > prev_score:
                 prev_score = score
                 best_kernel_index = i
-                best_alpha = alpha[i]
-        log(f'Completed small svm girdsearch on {self.dataset_name} with small param grid and found alpha = {best_alpha}',
+        log(f'Completed small svm girdsearch on {self.dataset_name} with small param grid and found {np.arange(0.05, 1.0, 0.1)[best_kernel_index]}',
             DIR)
 
         # do more detailed optimization now that we have the best kernel (alpha)
