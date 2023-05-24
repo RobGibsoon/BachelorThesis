@@ -98,6 +98,9 @@ class ReferenceClassifier:
         best_alpha = 0
         small_param_grid = {'C': [0.01, 0.1, 1, 10]}
 
+        self.kernelized_data_training = self.kernelized_data_training * (-1)
+        self.kernelized_data_test = self.kernelized_data_test * (-1)
+
         # find best alpha with less extensive param_grid
         for i, cur_kernel in enumerate(self.kernelized_data_training):
             alpha = np.arange(0.05, 1.0, 0.1)[i]
@@ -177,7 +180,7 @@ def create_custom_metric(test, train, alpha):
         for j in range(cols):
             res_mat[i, j] = graph_edit_distance(test[i], train[j], alpha)
     assert np.abs(np.sum(res_mat)) > 0
-    return res_mat * (-1)
+    return res_mat
 
 
 def compute_row(args):
