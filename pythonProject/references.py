@@ -1,5 +1,7 @@
 import csv
+from multiprocessing import Pool, cpu_count
 
+import numpy as np
 from cyged.graph_pkg_core import GED
 from cyged.graph_pkg_core import Graph
 from cyged.graph_pkg_core.edit_cost.edit_cost_vector import EditCostVector
@@ -36,9 +38,9 @@ class ReferenceClassifier:
         alpha_values = np.arange(0.05, 1.0, 0.1)
         self.kernelized_data_training = [create_custom_metric(train_graphs, train_graphs, alpha) for alpha in
                                          alpha_values]
-        log(f'Finished generating train-data kernel', DIR)
+        log(f'Finished generating train-data kernel for {self.dataset_name}', DIR)
         self.kernelized_data_test = [create_custom_metric(test_graphs, train_graphs, alpha) for alpha in alpha_values]
-        log(f'Finished generating test-data kernel', DIR)
+        log(f'Finished generating test-data kernel for {self.dataset_name}', DIR)
 
     def get_csv_idx_split(self, dn, idx_type):
         file = open(f"log/index_splits/{dn}_{idx_type}_split.csv", "r")
@@ -63,8 +65,11 @@ class ReferenceClassifier:
             # perform hyper parameter selection
             grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False,
                                        verbose=1, n_jobs=-1)
+            log(f'Completing knn gridsearch on {self.dataset_name}: ({i + 1}/{len(self.kernelized_data_training)}) ',
+                DIR)
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
-            log(f'Completed knn gridsearch: ({i + 1}/{len(self.kernelized_data_training)}) ', DIR)
+            log(f'Completed knn gridsearch on {self.dataset_name}: ({i + 1}/{len(self.kernelized_data_training)}) ',
+                DIR)
 
             # construct, train optimal model and perform predictions
             clf_knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
@@ -78,7 +83,8 @@ class ReferenceClassifier:
                 best_knn = clf_knn
                 best_kernel_index = i
                 best_grid_search = grid_search
-        log(f'finished knn fitting and found best alpha {np.arange(0.05, 1.0, 0.1)[best_kernel_index]}')
+        log(f'finished knn fitting on {self.dataset_name} and found best alpha {np.arange(0.05, 1.0, 0.1)[best_kernel_index]}',
+            DIR)
         append_hyperparams_file(False, best_grid_search, best_knn, self.dataset_name, DIR, ref=True)
         predictions = best_knn.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
@@ -100,7 +106,8 @@ class ReferenceClassifier:
             # perform hyper parameter selection
             grid_search = GridSearchCV(clf_svm, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
                                        return_train_score=False, verbose=1, n_jobs=-1)
-            log(f'Completing svm girdsearch with small param grid ({i + 1}/{len(self.kernelized_data_training)})', DIR)
+            log(f'Completing svm girdsearch with small param grid on {self.dataset_name}({i + 1}/{len(self.kernelized_data_training)})',
+                DIR)
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
 
             # construct, train optimal model and perform predictions
@@ -113,24 +120,25 @@ class ReferenceClassifier:
                 prev_score = score
                 best_kernel_index = i
                 best_alpha = alpha
-        log(f'Completed small svm girdsearch with small param grid and found alpha = {best_alpha}', DIR)
+        log(f'Completed small svm girdsearch on {self.dataset_name} with small param grid and found alpha = {best_alpha}',
+            DIR)
 
         # do more detailed optimization now that we have the best kernel (alpha)
         big_param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100]}
         clf_svm = svm.SVC(kernel='precomputed')
         detailed_grid_search = GridSearchCV(clf_svm, big_param_grid, cv=10, scoring='accuracy', error_score='raise',
                                             return_train_score=False, verbose=1, n_jobs=-1)
-        log(f'Completing svm girdsearch with detailed param grid.', DIR)
+        log(f'Completing svm girdsearch on {self.dataset_name} with detailed param grid.', DIR)
 
         detailed_grid_search.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))
-        log('finished detailed svm gridsearch', DIR)
+        log(f'finished detailed svm gridsearch on {self.dataset_name}', DIR)
         append_hyperparams_file(False, f"best alpha: {best_alpha}", clf_svm, self.dataset_name, DIR, ref=True)
         append_hyperparams_file(False, detailed_grid_search, clf_svm, self.dataset_name, DIR, ref=True)
 
         # do final fitting with best params
         best_svm = SVC(C=detailed_grid_search.best_params_['C'],
                        kernel='precomputed')
-        log('fiting best_svm', DIR)
+        log(f'fiting best_svm on {self.dataset_name}', DIR)
         best_svm.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))
         predictions = best_svm.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
@@ -169,11 +177,7 @@ def create_custom_metric(test, train, alpha):
         for j in range(cols):
             res_mat[i, j] = graph_edit_distance(test[i], train[j], alpha)
     assert np.abs(np.sum(res_mat)) > 0
-    return res_mat
-
-
-import numpy as np
-from multiprocessing import Pool, cpu_count
+    return res_mat * (-1)
 
 
 def compute_row(args):
