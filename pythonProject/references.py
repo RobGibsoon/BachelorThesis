@@ -97,11 +97,6 @@ class ReferenceClassifier:
         prev_score = 0
         best_alpha = 0.05
         small_param_grid = {'C': [0.01, 0.1, 1, 10]}
-        self.kernelized_data_training = [data_training * (-1) for data_training in
-                                         self.kernelized_data_training]
-        self.kernelized_data_test = [data_test * (-1) for data_test in
-                                     self.kernelized_data_test]
-
         # find best alpha with less extensive param_grid
         for i, cur_kernel in enumerate(self.kernelized_data_training):
             clf_svm = svm.SVC(kernel='precomputed')
