@@ -50,7 +50,10 @@ The last entry is to generate reference values, you will most likely not need th
 * 27: ("PTC_MR_bc", "svm", False, False),
 * 28: ("PTC_MR_bw", "svm", False, False),
 
-Ignore this section, it was for a older vesion of embedding_classifier.py, but might be used again in the future so I
+### (Ignore following section)
+
+Ignore the following section, it was for a older vesion of embedding_classifier.py, but might be used again in the
+future so I
 didn't delte it.
 
 * dn: The name of the dataset to classify. Choose an option from **PTC_MR, MUTAG, NCI1, Mutagenicity**
