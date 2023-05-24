@@ -122,7 +122,7 @@ class ReferenceClassifier:
             if score > prev_score:
                 prev_score = score
                 best_kernel_index = i
-                best_alpha = alpha
+                best_alpha = alpha[i]
         log(f'Completed small svm girdsearch on {self.dataset_name} with small param grid and found alpha = {best_alpha}',
             DIR)
 
