@@ -130,8 +130,9 @@ def create_df_and_save_to_csv(data, dataset_name):
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG')
+    dataset = TUDataset(root='/tmp/Mutagenicity', name='Mutagenicity')
     dataset_name = dataset.name
-    wanted_indices = [BALABAN]
+    wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
+                      EDGES, SCHULTZ]
     embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices)
     create_dataset(embedded_graph_set, wanted_indices, dataset_name)
