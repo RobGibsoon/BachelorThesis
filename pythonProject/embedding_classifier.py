@@ -217,7 +217,7 @@ if __name__ == "__main__":
                         help='The index of which command should be completed according to the inputs in utils.')
     args = parser.parse_args()
     if args.idx is None:
-        raise argparse.ArgumentError(None, "Please a possible index from 0-26.")
+        raise argparse.ArgumentError(None, "Please pass an index from 0-28.")
 
     idx = int(args.idx)
     parameters = inputs[idx]
@@ -247,7 +247,7 @@ if __name__ == "__main__":
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
             append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, DIR)
         else:
-            raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
+            raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')
 
         log(f"Used feature selection: {False if is_fs == False else True}", DIR)
     else:
@@ -267,4 +267,4 @@ if __name__ == "__main__":
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
             append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, ref_dir, ref=True)
         else:
-            raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
+            raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')
