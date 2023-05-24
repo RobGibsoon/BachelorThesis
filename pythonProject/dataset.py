@@ -120,17 +120,17 @@ def save_filter_split_file(successful_indices, dataset_name):
 def create_df_and_save_to_csv(data, dataset_name):
     df = pd.DataFrame(data)
     print(df)
-    if not exists(f'embedded_{dataset_name}.csv'):
-        df.to_csv(f'embedded_{dataset_name}.csv', index=False)
+    if not exists(f'../embedded_{dataset_name}.csv'):
+        df.to_csv(f'../embedded_{dataset_name}.csv', index=False)
     else:
         i = 0
-        while exists(f'embedded_{dataset_name}_{i}.csv'):
+        while exists(f'../embedded_{dataset_name}_{i}.csv'):
             i += 1
-        df.to_csv(f'embedded_{dataset_name}_{i}.csv', index=False)
+        df.to_csv(f'../embedded_{dataset_name}_{i}.csv', index=False)
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
+    dataset = TUDataset(root='/tmp/MUTAG', name='MUTAG')
     dataset_name = dataset.name
     wanted_indices = [BALABAN]
     embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices)
