@@ -50,6 +50,8 @@ class ReferenceClassifier:
 
     def predict_knn(self):
         """train and predict with knn"""
+        log(f'running references on: ({self.dataset_name}, knn)', DIR)
+
         best_kernel_index = 0
         prev_score = 0
         best_knn = None
@@ -93,6 +95,8 @@ class ReferenceClassifier:
 
     def predict_svm(self):
         """train and predict with svm"""
+        log(f'running references on: ({self.dataset_name}, svm)', DIR)
+
         best_kernel_index = 0
         prev_score = 0
         best_alpha = 0.05
