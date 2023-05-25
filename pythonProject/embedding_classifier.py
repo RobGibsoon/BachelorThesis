@@ -27,7 +27,7 @@ class EmbeddingClassifier:
     def __init__(self, dataset_name, feature_selection):
         self.dataset_name = dataset_name
         self.feature_selection = feature_selection
-        self.data = pd.read_csv(f'../embedded_{dataset_name}.csv')  # todo rollback
+        self.data = pd.read_csv(f'embedded_{dataset_name}.csv')
         shape = self.data.shape
         log(f'The dataframe has been read and is of shape {shape[0]}x{shape[1]}', DIR)
         log(f'The dataframe has a total of {self.data.isnull().sum().sum()} NaN values.', DIR)
@@ -42,7 +42,7 @@ class EmbeddingClassifier:
         self.X = scaler.transform(self.X)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
                                                                                 random_state=NP_SEED)
-        # save_test_train_split(self.X, self.X_train, self.X_test, dataset_name) todo rollback
+        save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
         print('saved test_train splits')
 
     def predict_knn(self):
