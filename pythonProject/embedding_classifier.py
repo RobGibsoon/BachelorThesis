@@ -54,12 +54,13 @@ class EmbeddingClassifier:
         clf_knn = KNeighborsClassifier()
 
         # perform feature selection
-        if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name)
-        else:
-            clf_X_train, clf_X_test = self.X_train, self.X_test
+        # if self.feature_selection:
+        #     clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
+        #                                                     self.dataset_name)
+        # else:
+        #     clf_X_train, clf_X_test = self.X_train, self.X_test
 
+        clf_X_train, clf_X_test = self.X_train, self.X_test
         # perform hyper parameter selection
         clf_knn.fit(clf_X_train, self.y_train)
         grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1,
@@ -86,12 +87,13 @@ class EmbeddingClassifier:
         clf_svm = svm.SVC()
 
         # perform feature selection
-        if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name)
-        else:
-            clf_X_train, clf_X_test = self.X_train, self.X_test
+        # if self.feature_selection:
+        #     clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
+        #                                                     self.dataset_name)
+        # else:
+        #     clf_X_train, clf_X_test = self.X_train, self.X_test
 
+        clf_X_train, clf_X_test = self.X_train, self.X_test
         # perform hyper parameter selection
         grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
                                    return_train_score=False, verbose=1, n_jobs=-1)
@@ -114,12 +116,13 @@ class EmbeddingClassifier:
         """train and predict 5 ANN's"""
 
         clf = ANN(self.X_train.shape[1])
-        if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
-        else:
-            clf_X_train, clf_X_test = self.X_train, self.X_test
+        # if self.feature_selection:
+        #     clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
+        #                                                     self.dataset_name, device)
+        # else:
+        #     clf_X_train, clf_X_test = self.X_train, self.X_test
 
+        clf_X_train, clf_X_test = self.X_train, self.X_test
         ann_list = [ANN(clf_X_train.shape[1]).to(device) for i in range(5)]
         seed_list = [random.randint(0, 9999999) for i in range(5)]
         accuracies = np.array([])
@@ -152,16 +155,14 @@ class EmbeddingClassifier:
         assert not (X.isna().any().any())
         y = pd.Series(self.y)
 
-        # get best features for k = 5, 8, 10
-        selected_features = self.mrmr_classif(X=X, y=y, K=8)
-        print(selected_features)
-        # mutag: ['zagreb', 'balaban', 'edges', 'randic', 'nodes', 'polarity_nr', 'padmakar_ivan', 'schultz']
-        # ptc_mr:['estrada', 'narumi', 'balaban', 'nodes', 'szeged', 'schultz', 'randic', 'wiener']
-        # mutagenicity: ['balaban', 'wiener', 'schultz', 'estrada', 'padmakar_ivan', 'polarity_nr', 'szeged', 'narumi']
+        selected_features = self.mrmr_classif(X=X, y=y)
+        print(f'ANOVA F-value/relevance for {self.dataset_name}:\n {selected_features[1]}')
+        print(f'Correlation matrix/redundancy for {self.dataset_name}:\n {selected_features[2]}')
+        append_features_file(f'ANOVA F-value/relevance for {self.dataset_name}:\n {selected_features[1]}')
+        append_features_file(f'Correlation matrix/redundancy for {self.dataset_name}:\n {selected_features[2]}')
 
-    def mrmr_classif(self, X, y, K):
-        """returns the best k features using Maximum Relevance — Minimum Redundancy
-        returns
+    def mrmr_classif(self, X, y):
+        """returns the redundancy and relevance for all features using Maximum Relevance — Minimum Redundancy
         selected: list of best features
         relevance: list of tuples of features and their scores
         corr: redundancy in form of correlation matrix"""
@@ -175,7 +176,7 @@ class EmbeddingClassifier:
         not_selected = X.columns.to_list()
 
         # repeat K times
-        for i in range(K):
+        for i in range(X.shape[1]):
 
             # compute (absolute) correlations between the last selected feature and all the (currently) excluded features
             if i > 0:
@@ -225,7 +226,6 @@ def feature_selected_sets(clf, X_train, X_test, y, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
     best_subset, best_score = get_best_feature_set(clf, X_train, y, device)
     features, count = get_feature_names(best_subset)
-    append_features_file(clf, features, count, dn)
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
