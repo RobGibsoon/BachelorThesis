@@ -33,7 +33,7 @@ class GNN(nn.Module):
         return x
 
 
-def train_model(model, epochs, criterion, optimizer, scheduler, train_loader, test_loader, device, run):
+def train_model(model, epochs, criterion, optimizer, scheduler, train_loader, test_loader, device, run, dataset_name):
     model.train()
     for epoch in range(epochs):
         running_loss = 0.0
@@ -60,7 +60,7 @@ def train_model(model, epochs, criterion, optimizer, scheduler, train_loader, te
         correct += int((pred == data.y).sum())
         predictions.extend(pred.cpu().numpy())
 
-    with open(f'predictions_run_{run}.csv', 'w', newline='') as csvfile:
+    with open(f'log/predictions/predictions_gnn_{dataset_name}_{run}.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(['predictions'])
         writer.writerows(zip(predictions))
@@ -91,7 +91,8 @@ def main():
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.001)
-        accuracy = train_model(model, epochs, criterion, optimizer, scheduler, train_loader, test_loader, device, i + 1)
+        accuracy = train_model(model, epochs, criterion, optimizer, scheduler, train_loader, test_loader, device, i + 1,
+                               dataset_name)
         accuracies.append(accuracy)
         print(f'Run {i + 1}, Accuracy: {accuracy * 100:.2f}%')
 
