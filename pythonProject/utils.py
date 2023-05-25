@@ -1,3 +1,4 @@
+import csv
 from itertools import chain, combinations
 from pathlib import Path
 
@@ -62,6 +63,13 @@ def get_degrees(graph):
     edge_index = graph.edge_index[0]
     num_nodes = graph.num_nodes
     return degree(edge_index, num_nodes)
+
+
+def get_csv_idx_split(dn, idx_type):
+    file = open(f"log/index_splits/{dn}_{idx_type}_split.csv", "r")
+    idx_split = list(csv.reader(file, delimiter=','))
+    parsed_idx_split = [int(elt) for elt in idx_split[0]]
+    return parsed_idx_split
 
 
 def is_connected(graph):

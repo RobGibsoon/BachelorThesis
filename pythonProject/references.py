@@ -1,4 +1,3 @@
-import csv
 from multiprocessing import Pool, cpu_count
 
 import numpy as np
@@ -17,7 +16,7 @@ from sklearn.svm import SVC
 from torch_geometric.data import Data
 from torch_geometric.datasets import TUDataset
 
-from utils import append_hyperparams_file, save_preds, append_accuracies_file, log
+from utils import append_hyperparams_file, save_preds, append_accuracies_file, log, get_csv_idx_split
 
 DIR = "references"
 
@@ -29,8 +28,8 @@ class ReferenceClassifier:
         filter_split = self.get_csv_idx_split(self.dataset_name, "filter")
         self.X = [self.data[idx] for idx in filter_split]
         self.y = np.array([self.X[i].y.item() for i in range(len(self.X))])
-        train_split = self.get_csv_idx_split(self.dataset_name, "train")
-        test_split = self.get_csv_idx_split(self.dataset_name, "test")
+        train_split = get_csv_idx_split(self.dataset_name, "train")
+        test_split = get_csv_idx_split(self.dataset_name, "test")
         train_graphs = [self.X[idx] for idx in train_split]
         test_graphs = [self.X[idx] for idx in test_split]
         self.y_train = [self.y[idx] for idx in train_split]
@@ -41,12 +40,6 @@ class ReferenceClassifier:
         log(f'Finished generating train-data kernel for {self.dataset_name}', DIR)
         self.kernelized_data_test = [create_custom_metric(test_graphs, train_graphs, alpha) for alpha in alpha_values]
         log(f'Finished generating test-data kernel for {self.dataset_name}', DIR)
-
-    def get_csv_idx_split(self, dn, idx_type):
-        file = open(f"log/index_splits/{dn}_{idx_type}_split.csv", "r")
-        idx_split = list(csv.reader(file, delimiter=','))
-        parsed_idx_split = [int(elt) for elt in idx_split[0]]
-        return parsed_idx_split
 
     def predict_knn(self):
         """train and predict with knn"""

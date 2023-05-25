@@ -1,16 +1,13 @@
-import torch
 import csv
 
-from torch_geometric.datasets import TUDataset
-from torch_geometric.nn import GCNConv
-from torch.optim.lr_scheduler import CyclicLR
-from torch_geometric.loader import DataLoader
-
-from torch import nn
 import numpy as np
-from pythonProject.scripts.utils import get_csv_idx_split
-
+import torch
+from torch import nn
+from torch_geometric.datasets import TUDataset
+from torch_geometric.loader import DataLoader
 from torch_geometric.nn import GCNConv, global_mean_pool
+
+from utils import get_csv_idx_split
 
 
 class GNN(nn.Module):
@@ -35,7 +32,8 @@ class GNN(nn.Module):
 
         return x
 
-def train_model(model, epochs, criterion, optimizer, scheduler, train_loader, test_loader,device, run):
+
+def train_model(model, epochs, criterion, optimizer, scheduler, train_loader, test_loader, device, run):
     model.train()
     for epoch in range(epochs):
         running_loss = 0.0
@@ -69,6 +67,7 @@ def train_model(model, epochs, criterion, optimizer, scheduler, train_loader, te
 
     return correct / len(test_loader.dataset)
 
+
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     dataset_name = "PTC_MR"
@@ -92,11 +91,12 @@ def main():
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.001)
-        accuracy = train_model(model, epochs, criterion, optimizer, scheduler, train_loader, test_loader,device, i+1)
+        accuracy = train_model(model, epochs, criterion, optimizer, scheduler, train_loader, test_loader, device, i + 1)
         accuracies.append(accuracy)
-        print(f'Run {i+1}, Accuracy: {accuracy * 100:.2f}%')
+        print(f'Run {i + 1}, Accuracy: {accuracy * 100:.2f}%')
 
     print(f'Average Accuracy over 10 runs: {np.mean(accuracies) * 100:.2f}%')
+
 
 if __name__ == "__main__":
     main()
