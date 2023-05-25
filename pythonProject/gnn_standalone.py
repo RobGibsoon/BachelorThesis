@@ -1,3 +1,4 @@
+import argparse
 import csv
 
 import numpy as np
@@ -69,8 +70,16 @@ def train_model(model, epochs, criterion, optimizer, scheduler, train_loader, te
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dn', type=str,
+                        help='Options: PTC_MR, Mutagenicity, MUTAG')
+    args = parser.parse_args()
+    if args.dn is None:
+        raise argparse.ArgumentError(None, "Please pass an index from 0-28.")
+
+    dataset_name = args.dn
+    print(dataset_name)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    dataset_name = "PTC_MR"
     data = TUDataset(root=f'/tmp/{dataset_name}', name=f'{dataset_name}')
     input_dim = data.num_node_features
     hidden_dim = 64
