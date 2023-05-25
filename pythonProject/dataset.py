@@ -1,12 +1,13 @@
 import csv
 from os.path import exists
 
+import numpy as np
 import pandas as pd
 from torch_geometric.datasets import TUDataset
 
 from embedded_graph import EmbeddedGraph
 from utils import BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES, EDGES, \
-    SCHULTZ, is_connected
+    SCHULTZ, is_connected, get_degrees
 
 
 def create_embedded_graph_set(dataset, wanted_indices):
@@ -109,6 +110,46 @@ def set_df_content(data, wanted_indices, embedded_graph_set):
         data["schultz"] = schultz
 
 
+def calculate_top_atts(dataset, dataset_name):
+    embedded_graphs = []
+    successful_count = 0
+    unsuccessful_count = 0
+    successful_indices = []
+    edges = np.array([])
+    nodes = np.array([])
+    avg_degrees = np.array([])
+    for i in range(len(dataset)):
+        if i % 50 == 0:
+            print(f'Successfully Embedded {successful_count}/{len(dataset)} graphs')
+            print(f'Failed embedding on {unsuccessful_count}/{len(dataset)} graphs')
+        try:
+            g = dataset[i]
+            num_edges = int(len(g.edge_index[1]) / 2)
+            num_nodes = g.num_nodes
+            edges = np.append(edges, np.array([num_edges]))
+            nodes = np.append(nodes, np.array([num_nodes]))
+            avg_degrees = np.append(avg_degrees, np.array(np.mean(get_degrees(g).numpy())))
+            successful_count += 1
+            successful_indices.append(i)
+        except Exception as e:
+            print(e)
+            assert not is_connected(dataset[i])  # this assertion is made so that we make sure if an embedding fails,
+            # the reason behind the fail is that the graph isn't connected and not some other unexpected error occurs
+            unsuccessful_count += 1
+    print(f'Finished embedding successfully on {successful_count}/{len(dataset)} graphs but failed on '
+          f'{unsuccessful_count}/{len(dataset)} graphs')
+    print(f'{dataset_name}')
+    print(f'average edges: {np.mean(edges)}')
+    print(f'average nodes: {np.mean(nodes)}')
+    print(f'max edges: {np.max(edges)}')
+    print(f'min edges: {np.min(edges)}')
+    print(f'max nodes: {np.max(nodes)}')
+    print(f'min nodes: {np.min(nodes)}')
+    print(f'average degrees: {np.mean(avg_degrees)}')
+
+    return embedded_graphs
+
+
 def save_filter_split_file(successful_indices, dataset_name):
     with open(f'../log/index_splits/{dataset_name}_filter_split.csv', mode='w') as file:
         writer = csv.writer(file)
@@ -130,9 +171,11 @@ def create_df_and_save_to_csv(data, dataset_name):
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/Mutagenicity', name='Mutagenicity')
-    dataset_name = dataset.name
+    dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
+    # dataset_name = dataset.name
     wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
                       EDGES, SCHULTZ]
-    embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices)
-    create_dataset(embedded_graph_set, wanted_indices, dataset_name)
+    # embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices)
+    # create_dataset(embedded_graph_set, wanted_indices, dataset_name)
+
+    calculate_top_atts(dataset, dataset.name)
