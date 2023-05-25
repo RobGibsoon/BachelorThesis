@@ -1,3 +1,4 @@
+import argparse
 import csv
 
 import numpy as np
@@ -7,7 +8,9 @@ from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
 from torch_geometric.nn import GCNConv, global_mean_pool
 
-from utils import get_csv_idx_split
+from utils import get_csv_idx_split, append_accuracies_file
+
+DIR = "gnn_standalone"
 
 
 class GNN(nn.Module):
@@ -69,8 +72,16 @@ def train_model(model, epochs, criterion, optimizer, scheduler, train_loader, te
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dn', type=str,
+                        help='Options: PTC_MR, Mutagenicity, MUTAG')
+    args = parser.parse_args()
+    if args.dn is None:
+        raise argparse.ArgumentError(None, "Please pass an index from 0-28.")
+
+    dataset_name = args.dn
+    print(dataset_name)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    dataset_name = "PTC_MR"
     data = TUDataset(root=f'/tmp/{dataset_name}', name=f'{dataset_name}')
     input_dim = data.num_node_features
     hidden_dim = 64
@@ -95,8 +106,10 @@ def main():
                                dataset_name)
         accuracies.append(accuracy)
         print(f'Run {i + 1}, Accuracy: {accuracy * 100:.2f}%')
+        append_accuracies_file(dataset_name, 'gnn', None, f'{accuracy * 100:.2f}%', DIR, index=i)
 
     print(f'Average Accuracy over 10 runs: {np.mean(accuracies) * 100:.2f}%')
+    append_accuracies_file(dataset_name, 'gnn_average', None, f'{np.mean(accuracies) * 100:.2f}%', DIR)
 
 
 if __name__ == "__main__":
