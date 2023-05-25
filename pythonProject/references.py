@@ -25,7 +25,7 @@ class ReferenceClassifier:
     def __init__(self, dataset_name):
         self.dataset_name = dataset_name
         self.data = TUDataset(root=f'/tmp/{self.dataset_name}', name=f'{self.dataset_name}')
-        filter_split = self.get_csv_idx_split(self.dataset_name, "filter")
+        filter_split = get_csv_idx_split(self.dataset_name, "filter")
         self.X = [self.data[idx] for idx in filter_split]
         self.y = np.array([self.X[i].y.item() for i in range(len(self.X))])
         train_split = get_csv_idx_split(self.dataset_name, "train")

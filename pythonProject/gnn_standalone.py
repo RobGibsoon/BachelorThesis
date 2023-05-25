@@ -106,10 +106,10 @@ def main():
                                dataset_name)
         accuracies.append(accuracy)
         print(f'Run {i + 1}, Accuracy: {accuracy * 100:.2f}%')
-        append_accuracies_file(dataset_name, 'gnn', None, f'{accuracy * 100:.2f}%', DIR, index=i)
+        append_accuracies_file(dataset_name, 'gnn', None, f'{accuracy * 100:.2f}%', DIR, index=i, ref=True)
 
     print(f'Average Accuracy over 10 runs: {np.mean(accuracies) * 100:.2f}%')
-    append_accuracies_file(dataset_name, 'gnn_average', None, f'{np.mean(accuracies) * 100:.2f}%', DIR)
+    append_accuracies_file(dataset_name, 'gnn_average', None, f'{np.mean(accuracies) * 100:.2f}%', DIR, ref=True)
 
 
 if __name__ == "__main__":
