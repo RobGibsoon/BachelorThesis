@@ -1,4 +1,4 @@
-import argparse
+import csv
 import csv
 import random
 
@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn import svm
+from sklearn.feature_selection import f_classif
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
@@ -15,9 +16,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from ann import mean_score_ann, ANN, Data, train_ann
-from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, all_subsets, log, append_accuracies_file, append_features_file, \
-    save_preds, append_hyperparams_file, inputs
+    save_preds, append_hyperparams_file
 
 np.random.seed(NP_SEED)
 DIR = "embedding_classifier"
@@ -54,12 +54,13 @@ class EmbeddingClassifier:
         clf_knn = KNeighborsClassifier()
 
         # perform feature selection
-        if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name)
-        else:
-            clf_X_train, clf_X_test = self.X_train, self.X_test
+        # if self.feature_selection:
+        #     clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
+        #                                                     self.dataset_name)
+        # else:
+        #     clf_X_train, clf_X_test = self.X_train, self.X_test
 
+        clf_X_train, clf_X_test = self.X_train, self.X_test
         # perform hyper parameter selection
         clf_knn.fit(clf_X_train, self.y_train)
         grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1,
@@ -86,12 +87,13 @@ class EmbeddingClassifier:
         clf_svm = svm.SVC()
 
         # perform feature selection
-        if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name)
-        else:
-            clf_X_train, clf_X_test = self.X_train, self.X_test
+        # if self.feature_selection:
+        #     clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
+        #                                                     self.dataset_name)
+        # else:
+        #     clf_X_train, clf_X_test = self.X_train, self.X_test
 
+        clf_X_train, clf_X_test = self.X_train, self.X_test
         # perform hyper parameter selection
         grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
                                    return_train_score=False, verbose=1, n_jobs=-1)
@@ -114,12 +116,13 @@ class EmbeddingClassifier:
         """train and predict 5 ANN's"""
 
         clf = ANN(self.X_train.shape[1])
-        if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
-        else:
-            clf_X_train, clf_X_test = self.X_train, self.X_test
+        # if self.feature_selection:
+        #     clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
+        #                                                     self.dataset_name, device)
+        # else:
+        #     clf_X_train, clf_X_test = self.X_train, self.X_test
 
+        clf_X_train, clf_X_test = self.X_train, self.X_test
         ann_list = [ANN(clf_X_train.shape[1]).to(device) for i in range(5)]
         seed_list = [random.randint(0, 9999999) for i in range(5)]
         accuracies = np.array([])
@@ -139,12 +142,58 @@ class EmbeddingClassifier:
             save_preds(predictions, self.y_test, type(clf_ann).__name__ + f"{i}", self.dataset_name,
                        self.feature_selection)
 
-            append_accuracies_file(dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
+            append_accuracies_file(self.dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
         print(accuracies)
         avg_accuracy = np.sum(accuracies) / 5
         high_deviation = np.max(accuracies) - avg_accuracy
         low_deviation = avg_accuracy - min(accuracies)
         return avg_accuracy, high_deviation, low_deviation
+
+    def get_mrmr_features(self):
+        X = self.data.drop('labels', axis=1)
+        X = X.apply(pd.to_numeric, errors='coerce').astype(float)
+        assert not (X.isna().any().any())
+        y = pd.Series(self.y)
+
+        selected_features = self.mrmr_classif(X=X, y=y)
+        print(f'ANOVA F-value/relevance for {self.dataset_name}:\n {selected_features[1]}')
+        print(f'Correlation matrix/redundancy for {self.dataset_name}:\n {selected_features[2]}')
+        append_features_file(f'ANOVA F-value/relevance for {self.dataset_name}:\n {selected_features[1]}')
+        append_features_file(f'Correlation matrix/redundancy for {self.dataset_name}:\n {selected_features[2]}')
+
+    def mrmr_classif(self, X, y):
+        """returns the redundancy and relevance for all features using Maximum Relevance — Minimum Redundancy
+        selected: list of best features
+        relevance: list of tuples of features and their scores
+        corr: redundancy in form of correlation matrix"""
+
+        F = pd.Series(f_classif(X, y)[0], index=X.columns)
+        corr = pd.DataFrame(.00001, index=X.columns, columns=X.columns)
+
+        # initialize list of selected features and list of excluded features
+        selected = []
+        scores = []
+        not_selected = X.columns.to_list()
+
+        # repeat K times
+        for i in range(X.shape[1]):
+
+            # compute (absolute) correlations between the last selected feature and all the (currently) excluded features
+            if i > 0:
+                last_selected = selected[-1]
+                corr.loc[not_selected, last_selected] = X[not_selected].corrwith(X[last_selected]).abs().clip(.00001)
+
+            # compute FCQ score for all the (currently) excluded features (this is Formula 2)
+            score = F.loc[not_selected] / corr.loc[not_selected, selected].mean(axis=1).fillna(.00001)
+
+            # find best feature, add it to selected and remove it from not_selected
+            best = score.index[score.argmax()]
+            scores.append((best, score.max()))
+            selected.append(best)
+            not_selected.remove(best)
+        relevance = F.loc[selected]
+
+        return selected, relevance, corr
 
 
 def get_best_feature_set(clf, X_train, y, device):
@@ -177,7 +226,6 @@ def feature_selected_sets(clf, X_train, X_test, y, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
     best_subset, best_score = get_best_feature_set(clf, X_train, y, device)
     features, count = get_feature_names(best_subset)
-    append_features_file(clf, features, count, dn)
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
@@ -212,59 +260,61 @@ def save_test_train_split(X, X_train, X_test, dataset_name):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--idx', type=str,
-                        help='The index of which command should be completed according to the inputs in utils.')
-    args = parser.parse_args()
-    if args.idx is None:
-        raise argparse.ArgumentError(None, "Please pass an index from 0-28.")
-
-    idx = int(args.idx)
-    parameters = inputs[idx]
-    log(f'{parameters}', DIR)
-    dataset_name = parameters[0]
-    clf_model = parameters[1]
-    is_fs = parameters[2]
-    is_reference = parameters[3]
-
-    # device used for ANNs
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=is_fs)
-    if not is_reference:
-        if clf_model.lower() == 'knn':
-            acc = embedding_classifier.predict_knn()
-            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
-            append_accuracies_file(dataset_name, clf_model, is_fs, acc, DIR)
-        elif clf_model.lower() == 'svm':
-            acc = embedding_classifier.predict_svm()
-            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
-            append_accuracies_file(dataset_name, clf_model, is_fs, acc, DIR)
-        elif clf_model.lower() == 'ann':
-            print(f'using ann and {dataset_name} and {is_fs}')
-            avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann(device)
-            log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
-                f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
-            append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, DIR)
-        else:
-            raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')
-
-        log(f"Used feature selection: {False if is_fs == False else True}", DIR)
-    else:
-        ref_dir = "references"
-        reference_classifier = ReferenceClassifier(dataset_name)
-        if clf_model.lower() == 'knn':
-            acc = reference_classifier.predict_knn()
-            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
-            append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
-        elif clf_model.lower() == 'svm':
-            acc = reference_classifier.predict_svm()
-            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
-            append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
-        elif clf_model.lower() == 'ann':
-            avg_accuracy, high_deviation, low_deviation = reference_classifier.predict_ann(device)
-            log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
-                f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
-            append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, ref_dir, ref=True)
-        else:
-            raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')
+    embedding_classifier = EmbeddingClassifier("Mutagenicity", feature_selection=True)
+    embedding_classifier.get_mrmr_features()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--idx', type=str,
+    #                     help='The index of which command should be completed according to the inputs in utils.')
+    # args = parser.parse_args()
+    # if args.idx is None:
+    #     raise argparse.ArgumentError(None, "Please pass an index from 0-28.")
+    #
+    # idx = int(args.idx)
+    # parameters = inputs[idx]
+    # log(f'{parameters}', DIR)
+    # dataset_name = parameters[0]
+    # clf_model = parameters[1]
+    # is_fs = parameters[2]
+    # is_reference = parameters[3]
+    #
+    # # device used for ANNs
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #
+    # embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=is_fs)
+    # if not is_reference:
+    #     if clf_model.lower() == 'knn':
+    #         acc = embedding_classifier.predict_knn()
+    #         log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
+    #         append_accuracies_file(dataset_name, clf_model, is_fs, acc, DIR)
+    #     elif clf_model.lower() == 'svm':
+    #         acc = embedding_classifier.predict_svm()
+    #         log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
+    #         append_accuracies_file(dataset_name, clf_model, is_fs, acc, DIR)
+    #     elif clf_model.lower() == 'ann':
+    #         print(f'using ann and {dataset_name} and {is_fs}')
+    #         avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann(device)
+    #         log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
+    #             f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
+    #         append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, DIR)
+    #     else:
+    #         raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')
+    #
+    #     log(f"Used feature selection: {False if is_fs == False else True}", DIR)
+    # else:
+    #     ref_dir = "references"
+    #     reference_classifier = ReferenceClassifier(dataset_name)
+    #     if clf_model.lower() == 'knn':
+    #         acc = reference_classifier.predict_knn()
+    #         log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
+    #         append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
+    #     elif clf_model.lower() == 'svm':
+    #         acc = reference_classifier.predict_svm()
+    #         log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
+    #         append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
+    #     elif clf_model.lower() == 'ann':
+    #         avg_accuracy, high_deviation, low_deviation = reference_classifier.predict_ann(device)
+    #         log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
+    #             f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
+    #         append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, ref_dir, ref=True)
+    #     else:
+    #         raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')

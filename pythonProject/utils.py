@@ -37,9 +37,7 @@ inputs = {
     23: ("Mutagenicity", "svm", None, True),
     24: ("MUTAG", "ann", None, True),
     25: ("MUTAG", "knn", None, True),
-    26: ("MUTAG", "svm", None, True),
-    27: ("PTC_MR_bc", "svm", False, False),
-    28: ("PTC_MR_bw", "svm", False, False),
+    26: ("MUTAG", "svm", None, True)
 }
 
 BALABAN = 0
@@ -117,10 +115,10 @@ def get_feature_names(feature_subset):
     return features, count
 
 
-def append_features_file(clf, features, count, dn):
+def append_features_file(text):
     Path(f"log/features/").mkdir(parents=True, exist_ok=True)
     with open('log/features/features.txt', mode='a') as file:
-        file.write(f"The {count} optimal features selected for {type(clf).__name__} on {dn} were: {features}\n")
+        file.write(text)
     file.close()
 
 
