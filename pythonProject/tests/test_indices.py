@@ -2,24 +2,23 @@ import unittest
 from unittest import TestCase
 
 import matplotlib
-import networkx as nx
 import numpy as np
 import torch
-from matplotlib import pyplot as plt
 from torch_geometric.data import Data
-from torch_geometric.utils import to_networkx
 
-from indices import create_zagreb_index, create_polarity_nr_index, \
-    create_wiener_index, create_randic_index, create_estrada_index, create_balaban_index, create_padmakar_ivan_index, \
-    create_szeged_index, create_schultz_index
+from indices import zagreb_index, polarity_nr_index, \
+    wiener_index, randic_index, estrada_index, balaban_index, padmakar_ivan_index, \
+    szeged_index, schultz_index
 
 matplotlib.use('TkAgg')
 
 """
     use the following code to draw a graph
-    # g = to_networkx(test_data)
-    # nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
-    # plt.show()
+    matplotlib.use('TkAgg')
+
+    g = to_networkx(test_data)
+    nx.draw_networkx(g, pos=nx.spring_layout(g), with_labels=False, arrows=False)
+    plt.show()
     """
 
 
@@ -71,60 +70,60 @@ class Test(TestCase):
 
     def test_create_zagreb_index(self):
         expected = np.array(6)
-        result = create_zagreb_index(self.data_example)
+        result = zagreb_index(self.data_example)
         self.assertTrue(np.array_equal(result, expected), f'calculating zagreb_index failed: expected {expected} but '
                                                           f'got {result}')
 
     def test_create_zagreb_index_empty_graph(self):
         expected = np.array(0)
-        result = create_zagreb_index(self.data_empty)
+        result = zagreb_index(self.data_empty)
         self.assertTrue(np.array_equal(result, expected), f'calculating zagreb_index failed: expected {expected} but '
                                                           f'got {result}')
 
     def test_create_zagreb_index_directed_graph(self):
         self.assertFalse(self.data_directed.is_undirected())
         with self.assertRaises(AssertionError):
-            create_zagreb_index(self.data_directed)
+            zagreb_index(self.data_directed)
 
     def test_create_polarity_nr(self):
         expected = np.array(0)
-        result1 = create_polarity_nr_index(self.data_example)
+        result1 = polarity_nr_index(self.data_example)
         self.assertTrue(np.array_equal(result1, expected),
                         f'creating polarity_nr failed: expected {expected} but got {result1}')
 
     def test_create_polarity_nr_empty(self):
         expected = np.array(0)
-        result = create_polarity_nr_index(self.data_empty)
+        result = polarity_nr_index(self.data_empty)
         self.assertTrue(np.array_equal(result, expected),
                         f'creating polarity_nr failed: expected {expected} but got {result}')
 
     def test_create_polarity_nr_bigger(self):
         expected = np.array(4)
-        result = create_polarity_nr_index(self.data_example_bigger)
+        result = polarity_nr_index(self.data_example_bigger)
         self.assertTrue(np.array_equal(result, expected),
                         f'creating polarity_nr failed: expected {expected} but got {result}')
 
     def test_create_wiener_index(self):
         expected = np.array(4)
-        result = create_wiener_index(self.data_example)
+        result = wiener_index(self.data_example)
         self.assertTrue(np.array_equal(result, expected),
                         f'creating wiener index failed: expected {expected} but got {result}')
 
     def test_create_wiener_index_empty(self):
         expected = np.array(0)
-        result = create_wiener_index(self.data_empty)
+        result = wiener_index(self.data_empty)
         self.assertTrue(np.array_equal(result, expected),
                         f'creating wiener index failed: expected {expected} but got {result}')
 
     def test_create_wiener_index_bigger(self):
         expected = np.array(31)
-        result = create_wiener_index(self.data_example_bigger)
+        result = wiener_index(self.data_example_bigger)
         self.assertTrue(np.array_equal(result, expected),
                         f'creating wiener index failed: expected {expected} but got {result}')
 
     def test_create_randic_index(self):
         expected = np.array(np.sqrt(2))
-        result = create_randic_index(self.data_example)
+        result = randic_index(self.data_example)
         self.assertTrue(np.isclose(result, expected),
                         f'creating randic index failed: expected {expected} but got {result}')
 
@@ -141,32 +140,32 @@ class Test(TestCase):
         expected = np.array(0.0)
         for eigenvalue in eigenvalues_example:
             expected += np.exp(eigenvalue)
-        result = create_estrada_index(example)
+        result = estrada_index(example)
         self.assertTrue(np.isclose(result, expected),
                         f'creating estrada index failed: expected {expected} but got {result}')
 
     def test_create_balaban_index(self):
         "example from https://de.wikipedia.org/wiki/Balaban-J-Index"
         expected = np.array(3.07437)
-        result = create_balaban_index(self.data_balaban_test)
+        result = balaban_index(self.data_balaban_test)
         self.assertTrue(np.isclose(result, expected),
                         f'creating balaban index failed: expected {expected} but got {result}')
 
     def test_pi_index(self):
         expected = np.array(27)
-        result = create_padmakar_ivan_index(self.data_example_pi)
+        result = padmakar_ivan_index(self.data_example_pi)
         self.assertTrue(np.isclose(result, expected),
                         f'creating padmakar-ivan index failed: expected {expected} but got {result}')
 
     def test_szeged_index(self):
         expected = np.array(31)
-        result = create_szeged_index(self.data_example_bigger)
+        result = szeged_index(self.data_example_bigger)
         self.assertTrue(np.isclose(result, expected),
                         f'creating szeged index failed: expected {expected} but got {result}')
 
     def test_schultz_index(self):
         expected = np.array(68)
-        result = create_schultz_index(self.data_schultz)
+        result = schultz_index(self.data_schultz)
         self.assertTrue(np.isclose(result, expected),
                         f'creating schultz index failed: expected {expected} but got {result}')
 

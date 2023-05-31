@@ -7,10 +7,10 @@ from torch_geometric.datasets import TUDataset
 
 from embedded_graph import EmbeddedGraph
 from utils import BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES, EDGES, \
-    SCHULTZ, is_connected, get_degrees
+    SCHULTZ, is_connected, get_degrees, MOD_ZAGREB, HYP_WIENER, N_IMPURITY, LABEL_ENTROPY, EDGE_STRENGTH
 
 
-def create_embedded_graph_set(dataset, wanted_indices):
+def create_embedded_graph_set(dataset, wanted_indices, dataset_name):
     embedded_graphs = []
     successful_count = 0
     unsuccessful_count = 0
@@ -20,7 +20,7 @@ def create_embedded_graph_set(dataset, wanted_indices):
             print(f'Successfully Embedded {successful_count}/{len(dataset)} graphs')
             print(f'Failed embedding on {unsuccessful_count}/{len(dataset)} graphs')
         try:
-            g = EmbeddedGraph(dataset[i], wanted_indices=wanted_indices)
+            g = EmbeddedGraph(dataset[i], wanted_indices, dataset_name)
             embedded_graphs.append(g)
             successful_count += 1
             successful_indices.append(i)
@@ -56,6 +56,11 @@ def set_df_content(data, wanted_indices, embedded_graph_set):
     wiener = []
     zagreb = []
     schultz = []
+    mod_zagreb = []
+    hyp_wiener = []
+    n_impurity = []
+    label_entropy = []
+    edge_strength = []
     for g in embedded_graph_set:
         labels.append(g.y.item())
         if BALABAN in wanted_indices:
@@ -82,6 +87,16 @@ def set_df_content(data, wanted_indices, embedded_graph_set):
             zagreb.append(g.embedding["zagreb"])
         if SCHULTZ in wanted_indices:
             schultz.append(g.embedding["schultz"])
+        if MOD_ZAGREB in wanted_indices:
+            mod_zagreb.append(g.embedding["mod_zagreb"])
+        if HYP_WIENER in wanted_indices:
+            hyp_wiener.append(g.embedding["hyp_wiener"])
+        if N_IMPURITY in wanted_indices:
+            n_impurity.append(g.embedding["n_impurity"])
+        if LABEL_ENTROPY in wanted_indices:
+            label_entropy.append(g.embedding["label_entropy"])
+        if EDGE_STRENGTH in wanted_indices:
+            edge_strength.append(g.embedding["edge_strength"])
 
     data["labels"] = labels
     if BALABAN in wanted_indices:
@@ -108,6 +123,16 @@ def set_df_content(data, wanted_indices, embedded_graph_set):
         data["zagreb"] = zagreb
     if SCHULTZ in wanted_indices:
         data["schultz"] = schultz
+    if MOD_ZAGREB in wanted_indices:
+        data["mod_zagreb"] = mod_zagreb
+    if HYP_WIENER in wanted_indices:
+        data["hyp_wiener"] = hyp_wiener
+    if N_IMPURITY in wanted_indices:
+        data["n_impurity"] = n_impurity
+    if LABEL_ENTROPY in wanted_indices:
+        data["label_entropy"] = label_entropy
+    if EDGE_STRENGTH in wanted_indices:
+        data["edge_strength"] = edge_strength
 
 
 def calculate_top_atts(dataset, dataset_name):
@@ -171,11 +196,11 @@ def create_df_and_save_to_csv(data, dataset_name):
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
-    # dataset_name = dataset.name
-    wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
-                      EDGES, SCHULTZ]
-    # embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices)
-    # create_dataset(embedded_graph_set, wanted_indices, dataset_name)
-
+    dataset = TUDataset(root='/tmp/AIDS', name='AIDS')
     calculate_top_atts(dataset, dataset.name)
+
+    dataset_name = dataset.name
+    wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
+                      EDGES, SCHULTZ, MOD_ZAGREB, HYP_WIENER, N_IMPURITY, LABEL_ENTROPY, EDGE_STRENGTH]
+    embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices, dataset_name)
+    create_dataset(embedded_graph_set, wanted_indices, dataset_name)

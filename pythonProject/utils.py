@@ -38,7 +38,13 @@ inputs = {
     23: ("Mutagenicity", "svm", None, True),
     24: ("MUTAG", "ann", None, True),
     25: ("MUTAG", "knn", None, True),
-    26: ("MUTAG", "svm", None, True)
+    26: ("MUTAG", "svm", None, True),
+    27: ("NCI1", "ann", False, True),
+    28: ("NCI1", "knn", False, True),
+    29: ("NCI1", "svm", False, True),
+    30: ("NCI1", "ann", True, True),
+    31: ("NCI1", "knn", True, True),
+    32: ("NCI1", "svm", True, True),
 }
 
 BALABAN = 0
@@ -53,6 +59,11 @@ ZAGREB = 8
 NODES = 9
 EDGES = 10
 SCHULTZ = 11
+MOD_ZAGREB = 12
+HYP_WIENER = 13
+N_IMPURITY = 14
+LABEL_ENTROPY = 15
+EDGE_STRENGTH = 16
 
 NP_SEED = 42
 
