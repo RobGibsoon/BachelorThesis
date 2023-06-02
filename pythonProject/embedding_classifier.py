@@ -45,7 +45,7 @@ class EmbeddingClassifier:
         self.X = scaler.transform(self.X)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
                                                                                 random_state=NP_SEED)
-        # save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
+        save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
         print('saved test_train splits')
 
     def predict_knn(self):
@@ -265,6 +265,7 @@ def get_best_feature_set(clf, X_train, y, device):
             count += 1
 
     log(f"best_subset: {np.array(best_subset)} with best score: {best_score}", DIR)
+    append_features_file(f"best_subset: {np.array(best_subset)} with best score: {best_score}", DIR)
     return np.array(best_subset), best_score
 
 

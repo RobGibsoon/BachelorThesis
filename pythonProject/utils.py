@@ -10,7 +10,8 @@ from scipy.sparse.csgraph import dijkstra
 from torch_geometric.utils import to_dense_adj, degree
 
 feature_names = {0: "balaban", 1: "estrada", 2: "narumi", 3: "padmakar-ivan", 4: "polarity-nr", 5: "randic",
-                 6: "szeged", 7: "wiener", 8: "zagreb", 9: "nodes", 10: "edges", 11: "schultz"}
+                 6: "szeged", 7: "wiener", 8: "zagreb", 9: "nodes", 10: "edges", 11: "schultz", 12: "", 13: "", 14: "",
+                 15: "", 16: "", }
 inputs = {
     0: ("PTC_MR", "ann", True, False),
     1: ("PTC_MR", "knn", True, False),
