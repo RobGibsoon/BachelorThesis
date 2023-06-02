@@ -1,4 +1,6 @@
+from datetime import datetime
 from multiprocessing import Pool, cpu_count
+from time import time
 
 import numpy as np
 from cyged.graph_pkg_core import GED
@@ -61,7 +63,9 @@ class ReferenceClassifier:
                                        verbose=1, n_jobs=-1)
             log(f'Completing knn gridsearch on {self.dataset_name}: ({i + 1}/{len(self.kernelized_data_training)}) ',
                 DIR)
+            start_time = time()
             grid_search.fit(cur_kernel, np.ravel(self.y_train))
+            grid_search_time = time() - start_time
             log(f'Completed knn gridsearch on {self.dataset_name}: ({i + 1}/{len(self.kernelized_data_training)}) ',
                 DIR)
 
@@ -70,7 +74,14 @@ class ReferenceClassifier:
                                            n_neighbors=grid_search.best_params_['n_neighbors'],
                                            metric='precomputed')
 
+            start_time = time()
             clf_knn.fit(cur_kernel, np.ravel(self.y_train))
+            clf_time = time() - start_time
+            grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
+            clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
+            log(f"Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
+                f"Classification time on {self.dataset_name} svm {clf_time}: ", "time")
+
             score = clf_knn.score(cur_kernel, np.ravel(self.y_train))
             if score > prev_score:
                 prev_score = score
@@ -127,7 +138,9 @@ class ReferenceClassifier:
                                             return_train_score=False, verbose=1, n_jobs=-1)
         log(f'Completing svm girdsearch on {self.dataset_name} with detailed param grid.', DIR)
 
+        start_time = time()
         detailed_grid_search.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))
+        grid_search_time = time() - start_time
         log(f'finished detailed svm gridsearch on {self.dataset_name}', DIR)
         append_hyperparams_file(False, f"best alpha: {best_alpha}", clf_svm, self.dataset_name, DIR, ref=True)
         append_hyperparams_file(False, detailed_grid_search, clf_svm, self.dataset_name, DIR, ref=True)
@@ -136,7 +149,16 @@ class ReferenceClassifier:
         best_svm = SVC(C=detailed_grid_search.best_params_['C'],
                        kernel='precomputed')
         log(f'fiting best_svm on {self.dataset_name}', DIR)
+
+        start_time = time()
         best_svm.fit(self.kernelized_data_training[best_kernel_index], np.ravel(self.y_train))
+        clf_time = time() - start_time
+
+        grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
+        clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
+        log(f"Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
+            f"Classification time on {self.dataset_name} svm {clf_time}: ", "time")
+
         predictions = best_svm.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
         save_preds(predictions, self.y_test, type(best_svm).__name__, self.dataset_name, False, ref=True)

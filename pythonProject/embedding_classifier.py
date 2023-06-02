@@ -1,6 +1,8 @@
 import argparse
 import csv
 import random
+from datetime import datetime
+from time import time
 
 import numpy as np
 import pandas as pd
@@ -28,7 +30,7 @@ class EmbeddingClassifier:
     def __init__(self, dataset_name, feature_selection):
         self.dataset_name = dataset_name
         self.feature_selection = feature_selection
-        self.data = pd.read_csv(f'embedded_{dataset_name}.csv')
+        self.data = pd.read_csv(f'../embedded_{dataset_name}.csv')
         shape = self.data.shape
         log(f'The dataframe has been read and is of shape {shape[0]}x{shape[1]}', DIR)
         log(f'The dataframe has a total of {self.data.isnull().sum().sum()} NaN values.', DIR)
@@ -43,7 +45,7 @@ class EmbeddingClassifier:
         self.X = scaler.transform(self.X)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
                                                                                 random_state=NP_SEED)
-        save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
+        # save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
         print('saved test_train splits')
 
     def predict_knn(self):
@@ -55,26 +57,41 @@ class EmbeddingClassifier:
         clf_knn = KNeighborsClassifier()
 
         # perform feature selection
-        # if self.feature_selection:
-        #     clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
-        #                                                     self.dataset_name)
-        # else:
-        #     clf_X_train, clf_X_test = self.X_train, self.X_test
+        start_time = time()
+        if self.feature_selection:
+            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name)
+        else:
+            clf_X_train, clf_X_test = self.X_train, self.X_test
+        bf_fs_time = time() - start_time
 
-        clf_X_train, clf_X_test = self.X_train, self.X_test
         # perform hyper parameter selection
+        start_time = time()
         clf_knn.fit(clf_X_train, self.y_train)
         grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1,
                                    n_jobs=-1)
         grid_search.fit(clf_X_train, self.y_train)
+        grid_search_time = time() - start_time
         append_hyperparams_file(self.feature_selection, grid_search, clf_knn, self.dataset_name, DIR)
 
         # construct, train optimal model and perform predictions
         knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
                                    metric=grid_search.best_params_['metric'],
                                    n_neighbors=grid_search.best_params_['n_neighbors'])
-
+        start_time = time()
         knn.fit(clf_X_train, self.y_train)
+        clf_time = time() - start_time
+
+        # format and log the time
+        bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
+        grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
+        clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
+
+        if self.feature_selection:
+            log(f"BF FS time on {self.dataset_name} knn: {bf_fs_time}", "time")
+        log(f"Gridsearch time on {self.dataset_name} knn: {grid_search_time} \n"
+            f"Classification time on {self.dataset_name} knn: {clf_time}", "time")
+
         predictions = knn.predict(clf_X_test)
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
         save_preds(predictions, self.y_test, type(clf_knn).__name__, self.dataset_name, self.feature_selection)
@@ -88,17 +105,20 @@ class EmbeddingClassifier:
         clf_svm = svm.SVC()
 
         # perform feature selection
-        # if self.feature_selection:
-        #     clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
-        #                                                     self.dataset_name)
-        # else:
-        #     clf_X_train, clf_X_test = self.X_train, self.X_test
+        start_time = time()
+        if self.feature_selection:
+            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name)
+        else:
+            clf_X_train, clf_X_test = self.X_train, self.X_test
+        bf_fs_time = time() - start_time
 
-        clf_X_train, clf_X_test = self.X_train, self.X_test
         # perform hyper parameter selection
+        start_time = time()
         grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
                                    return_train_score=False, verbose=1, n_jobs=-1)
         grid_search.fit(clf_X_train, self.y_train)
+        grid_search_time = time() - start_time
         append_hyperparams_file(self.feature_selection, grid_search, clf_svm, self.dataset_name, DIR)
 
         # construct, train optimal model and perform predictions
@@ -106,7 +126,20 @@ class EmbeddingClassifier:
                       gamma=grid_search.best_params_['gamma'],
                       kernel=grid_search.best_params_['kernel'])
 
+        start_time = time()
         clf_svm.fit(clf_X_train, self.y_train)
+        clf_time = time() - start_time
+
+        # format and log the time
+        if self.feature_selection:
+            bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
+        grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
+        clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
+        if self.feature_selection:
+            log(f"BF FS time on {self.dataset_name} svm: {bf_fs_time}", "time")
+        log(f"Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
+            f"Classification time on {self.dataset_name} svm {clf_time}: ", "time")
+
         predictions = clf_svm.predict(clf_X_test)
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
         save_preds(predictions, self.y_test, type(clf_svm).__name__, self.dataset_name, self.feature_selection)
@@ -117,16 +150,18 @@ class EmbeddingClassifier:
         """train and predict 5 ANN's"""
 
         clf = ANN(self.X_train.shape[1])
-        # if self.feature_selection:
-        #     clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
-        #                                                     self.dataset_name, device)
-        # else:
-        #     clf_X_train, clf_X_test = self.X_train, self.X_test
+        start_time = time()
+        if self.feature_selection:
+            clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name, device)
+        else:
+            clf_X_train, clf_X_test = self.X_train, self.X_test
+        bf_fs_time = time() - start_time
 
-        clf_X_train, clf_X_test = self.X_train, self.X_test
         ann_list = [ANN(clf_X_train.shape[1]).to(device) for i in range(5)]
         seed_list = [random.randint(0, 9999999) for i in range(5)]
         accuracies = np.array([])
+        times = []
         for i, clf_ann in enumerate(ann_list):
             seed = seed_list[i]
             torch.manual_seed(seed)
@@ -138,12 +173,22 @@ class EmbeddingClassifier:
             test_data = Data(clf_X_test, self.y_test)
             train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=0)
             test_loader = DataLoader(test_data, batch_size=batch_size)
+            start_time = time()
             accuracy, predictions, labels = train_ann(clf_ann, epochs, criterion, train_loader, test_loader, device)
+            clf_time = time() - start_time
+            times.append(clf_time)
             accuracies = np.append(accuracies, accuracy)
             save_preds(predictions, self.y_test, type(clf_ann).__name__ + f"{i}", self.dataset_name,
                        self.feature_selection)
 
             append_accuracies_file(self.dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
+
+        if self.feature_selection:
+            bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
+        clf_time = [datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4] for clf_time in times]
+        if self.feature_selection:
+            log(f"BF FS time on {self.dataset_name} svm: {bf_fs_time}", "time")
+        log(f"The 5 classification times on {self.dataset_name} ann: {clf_time}", "time")
         print(accuracies)
         avg_accuracy = np.sum(accuracies) / 5
         high_deviation = np.max(accuracies) - avg_accuracy
@@ -219,8 +264,8 @@ def get_best_feature_set(clf, X_train, y, device):
             log(f'subset {count}/{2 ** n_features - 1}', DIR)
             count += 1
 
-    log(f"best_subset: {np.array(subset)} with best score: {best_score}", DIR)
-    return np.array(subset), best_score
+    log(f"best_subset: {np.array(best_subset)} with best score: {best_score}", DIR)
+    return np.array(best_subset), best_score
 
 
 def feature_selected_sets(clf, X_train, X_test, y, dn, device='cpu'):
@@ -261,8 +306,9 @@ def save_test_train_split(X, X_train, X_test, dataset_name):
 
 
 if __name__ == "__main__":
-    # embedding_classifier = EmbeddingClassifier("Mutagenicity", feature_selection=True)
-    # embedding_classifier.get_mrmr_features()
+    """"""
+    embedding_classifier = EmbeddingClassifier("PTC_MR", feature_selection=True)
+    embedding_classifier.get_mrmr_features()
     parser = argparse.ArgumentParser()
     parser.add_argument('--idx', type=str,
                         help='The index of which command should be completed according to the inputs in utils.')
