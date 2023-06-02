@@ -14,10 +14,10 @@ class EmbeddedGraph(Data):
 
     def __init__(self, data, wanted_indices, dataset_name, **kwargs):
         super().__init__(x=data.x, edge_index=data.edge_index, y=data.y, **kwargs)
-        self.embedding = self.set_embedding(data, wanted_indices)
+        self.embedding = self.set_embedding(data, wanted_indices, dataset_name)
         self.dataset_name = dataset_name
 
-    def set_embedding(self, graph, wanted_indices):
+    def set_embedding(self, graph, wanted_indices, dataset_name):
         """wanted_indices is a list with the names of which indices we want in the embedding"""
         embedding = {}
         if BALABAN in wanted_indices:
@@ -29,7 +29,7 @@ class EmbeddedGraph(Data):
         if ESTRADA in wanted_indices:
             embedding["estrada"] = estrada_index(graph)
         if NARUMI in wanted_indices:
-            embedding["narumi"] = narumi_index(graph)
+            embedding["narumi"] = narumi_index(graph, dataset_name)
         if PADMAKAR_IVAN in wanted_indices:
             embedding["padmakar_ivan"] = padmakar_ivan_index(graph)
         if POLARITY_NR in wanted_indices:
@@ -49,9 +49,9 @@ class EmbeddedGraph(Data):
         if HYP_WIENER in wanted_indices:
             embedding["hyp_wiener"] = hyper_wiener_index(graph)
         if N_IMPURITY in wanted_indices:
-            embedding["n_impurity"] = label_entropy(graph)
+            embedding["n_impurity"] = neighborhood_impurity(graph)
         if LABEL_ENTROPY in wanted_indices:
-            embedding["label_entropy"] = neighborhood_impurity(graph)
+            embedding["label_entropy"] = label_entropy(graph)
         if EDGE_STRENGTH in wanted_indices:
             embedding["edge_strength"] = avg_edge_stength(graph)
 

@@ -1,5 +1,7 @@
 import argparse
 import csv
+from datetime import datetime
+from time import time
 
 import numpy as np
 import torch
@@ -8,7 +10,7 @@ from torch_geometric.datasets import TUDataset
 from torch_geometric.loader import DataLoader
 from torch_geometric.nn import GCNConv, global_mean_pool
 
-from utils import get_csv_idx_split, append_accuracies_file
+from utils import get_csv_idx_split, append_accuracies_file, log
 
 DIR = "gnn_standalone"
 
@@ -97,18 +99,25 @@ def main():
     test_loader = DataLoader(test_graphs, batch_size=64, shuffle=False)
 
     accuracies = []
-    for i in range(10):
+    times = []
+    for i in range(5):
         model = GNN(input_dim, hidden_dim, output_dim).to(device)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs, eta_min=0.001)
+        start_time = time()
         accuracy = train_model(model, epochs, criterion, optimizer, scheduler, train_loader, test_loader, device, i + 1,
                                dataset_name)
+        clf_time = time() - start_time
         accuracies.append(accuracy)
+        times.append(clf_time)
         print(f'Run {i + 1}, Accuracy: {accuracy * 100:.2f}%')
         append_accuracies_file(dataset_name, 'gnn', None, f'{accuracy * 100:.2f}%', DIR, index=i, ref=True)
 
-    print(f'Average Accuracy over 10 runs: {np.mean(accuracies) * 100:.2f}%')
+    clf_time = [datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4] for clf_time in times]
+    log(f"The 5 classification times on {dataset_name} ann: {clf_time}", "time")
+
+    print(f'Average Accuracy over 5 runs: {np.mean(accuracies) * 100:.2f}%')
     append_accuracies_file(dataset_name, 'gnn_average', None, f'{np.mean(accuracies) * 100:.2f}%', DIR, ref=True)
 
 

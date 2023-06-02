@@ -1,5 +1,7 @@
 import csv
+from datetime import datetime
 from os.path import exists
+from time import time
 
 import numpy as np
 import pandas as pd
@@ -7,7 +9,7 @@ from torch_geometric.datasets import TUDataset
 
 from embedded_graph import EmbeddedGraph
 from utils import BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES, EDGES, \
-    SCHULTZ, is_connected, get_degrees, MOD_ZAGREB, HYP_WIENER, N_IMPURITY, LABEL_ENTROPY, EDGE_STRENGTH
+    SCHULTZ, is_connected, get_degrees, MOD_ZAGREB, HYP_WIENER, N_IMPURITY, LABEL_ENTROPY, EDGE_STRENGTH, log
 
 
 def create_embedded_graph_set(dataset, wanted_indices, dataset_name):
@@ -196,11 +198,24 @@ def create_df_and_save_to_csv(data, dataset_name):
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/AIDS', name='AIDS')
+    dataset = TUDataset(root='/tmp/Mutagenicity', name='Mutagenicity')
     calculate_top_atts(dataset, dataset.name)
 
     dataset_name = dataset.name
     wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
                       EDGES, SCHULTZ, MOD_ZAGREB, HYP_WIENER, N_IMPURITY, LABEL_ENTROPY, EDGE_STRENGTH]
+
+    start_time = time()
     embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices, dataset_name)
+    embedding_time = time() - start_time
+    start_time = time()
     create_dataset(embedded_graph_set, wanted_indices, dataset_name)
+    saving_time = time() - start_time
+
+    total_time = datetime.utcfromtimestamp(saving_time + embedding_time).strftime('%H:%M:%S.%f')[:-4]
+    embedding_time = datetime.utcfromtimestamp(embedding_time).strftime('%H:%M:%S.%f')[:-4]
+    saving_time = datetime.utcfromtimestamp(saving_time).strftime('%H:%M:%S.%f')[:-4]
+
+    log(f"Embedding {dataset_name} time: {embedding_time}", "time")
+    log(f"Saving embedded {dataset_name} time: {saving_time}", "time")
+    log(f"Total {dataset_name} embedding time: {total_time}\n", "time")

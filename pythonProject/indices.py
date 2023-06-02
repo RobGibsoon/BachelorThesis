@@ -18,13 +18,21 @@ def zagreb_index(graph):
     return np.array(int(zagreb_index))
 
 
-def narumi_index(graph):
+def narumi_index(graph, dataset_name):
     """The narumi index is the product of the node-degrees of all non-hydrogen atoms.
     https://doi.org/10.1016/j.aml.2011.12.018"""
     assert graph.is_undirected()
-    degrees = get_degrees(graph)
-    narumi_index = np.prod(degrees.numpy())
-    return np.array(int(narumi_index))
+    degrees = get_degrees(graph).numpy()
+    if dataset_name == "DHFR" or dataset_name == "ER_MD":
+        # an overflow is occasionally generated on these datasets, therefore 8 random degreees are chosen to
+        # calculate the product of the degrees
+        t = 8
+        np.random.shuffle(degrees)
+        degrees = degrees[:t]
+
+    narumi_index = np.prod(degrees)
+
+    return np.array(float(narumi_index))
 
 
 def polarity_nr_index(graph):
@@ -219,7 +227,7 @@ def neighborhood_impurity(graph):
     assert graph.is_undirected()
 
     node_labels = graph.x.argmax(dim=1).numpy()
-    node_impurity_degrees = np.array([])
+    node_impurity_degrees = np.array([0])
 
     # Loop over all nodes to get node impurities
     for node in range(graph.num_nodes):
@@ -243,6 +251,7 @@ def neighborhood_impurity(graph):
             node_impurity_degrees = np.append(node_impurity_degrees, node_impurity)
 
     graph_impurity = np.mean(node_impurity_degrees)
+    assert graph_impurity is not None
     return graph_impurity
 
 
