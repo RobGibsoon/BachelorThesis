@@ -1,0 +1,32 @@
+Embedding PTC_MR time: 00:00:06.71
+Saving embedded PTC_MR time: 00:00:00.08
+Total PTC_MR embedding time: 00:00:06.79
+
+Embedding PTC_FM time: 00:00:04.34
+Saving embedded PTC_FM time: 00:00:00.05
+Total PTC_FM embedding time: 00:00:04.40
+
+Embedding PTC_MM time: 00:00:07.45
+Saving embedded PTC_MM time: 00:00:00.07
+Total PTC_MM embedding time: 00:00:07.52
+
+Embedding PTC_FR time: 00:00:07.88
+Saving embedded PTC_FR time: 00:00:00.06
+Total PTC_FR embedding time: 00:00:07.95
+
+Embedding AIDS time: 00:00:34.69
+Saving embedded AIDS time: 00:00:00.19
+Total AIDS embedding time: 00:00:34.89
+
+Embedding MUTAG time: 00:00:03.80
+Saving embedded MUTAG time: 00:00:00.07
+Total MUTAG embedding time: 00:00:03.88
+
+Embedding ER_MD time: 00:01:18.53
+Saving embedded ER_MD time: 00:00:00.08
+Total ER_MD embedding time: 00:01:18.61
+
+Embedding Mutagenicity time: 00:01:27.74
+Saving embedded Mutagenicity time: 00:00:00.43
+Total Mutagenicity embedding time: 00:01:28.18
+
