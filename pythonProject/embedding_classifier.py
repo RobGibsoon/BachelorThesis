@@ -30,7 +30,7 @@ class EmbeddingClassifier:
     def __init__(self, dataset_name, feature_selection):
         self.dataset_name = dataset_name
         self.feature_selection = feature_selection
-        self.data = pd.read_csv(f'../embedded_{dataset_name}.csv')
+        self.data = pd.read_csv(f'embedded_{dataset_name}.csv')
         shape = self.data.shape
         log(f'The dataframe has been read and is of shape {shape[0]}x{shape[1]}', DIR)
         log(f'The dataframe has a total of {self.data.isnull().sum().sum()} NaN values.', DIR)
