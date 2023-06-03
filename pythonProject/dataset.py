@@ -1,15 +1,18 @@
 import csv
+from datetime import datetime
 from os.path import exists
+from time import time
 
+import numpy as np
 import pandas as pd
 from torch_geometric.datasets import TUDataset
 
 from embedded_graph import EmbeddedGraph
 from utils import BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES, EDGES, \
-    SCHULTZ, is_connected
+    SCHULTZ, is_connected, get_degrees, MOD_ZAGREB, HYP_WIENER, N_IMPURITY, LABEL_ENTROPY, EDGE_STRENGTH, log
 
 
-def create_embedded_graph_set(dataset, wanted_indices):
+def create_embedded_graph_set(dataset, wanted_indices, dataset_name):
     embedded_graphs = []
     successful_count = 0
     unsuccessful_count = 0
@@ -19,7 +22,7 @@ def create_embedded_graph_set(dataset, wanted_indices):
             print(f'Successfully Embedded {successful_count}/{len(dataset)} graphs')
             print(f'Failed embedding on {unsuccessful_count}/{len(dataset)} graphs')
         try:
-            g = EmbeddedGraph(dataset[i], wanted_indices=wanted_indices)
+            g = EmbeddedGraph(dataset[i], wanted_indices, dataset_name)
             embedded_graphs.append(g)
             successful_count += 1
             successful_indices.append(i)
@@ -28,7 +31,7 @@ def create_embedded_graph_set(dataset, wanted_indices):
             assert not is_connected(dataset[i])  # this assertion is made so that we make sure if an embedding fails,
             # the reason behind the fail is that the graph isn't connected and not some other unexpected error occurs
             unsuccessful_count += 1
-    print(f'Finished embedding with successfully on {successful_count}/{len(dataset)} graphs but failed on '
+    print(f'Finished embedding successfully on {successful_count}/{len(dataset)} graphs but failed on '
           f'{unsuccessful_count}/{len(dataset)} graphs')
 
     save_filter_split_file(successful_indices, dataset_name)
@@ -55,6 +58,11 @@ def set_df_content(data, wanted_indices, embedded_graph_set):
     wiener = []
     zagreb = []
     schultz = []
+    mod_zagreb = []
+    hyp_wiener = []
+    n_impurity = []
+    label_entropy = []
+    edge_strength = []
     for g in embedded_graph_set:
         labels.append(g.y.item())
         if BALABAN in wanted_indices:
@@ -81,6 +89,16 @@ def set_df_content(data, wanted_indices, embedded_graph_set):
             zagreb.append(g.embedding["zagreb"])
         if SCHULTZ in wanted_indices:
             schultz.append(g.embedding["schultz"])
+        if MOD_ZAGREB in wanted_indices:
+            mod_zagreb.append(g.embedding["mod_zagreb"])
+        if HYP_WIENER in wanted_indices:
+            hyp_wiener.append(g.embedding["hyp_wiener"])
+        if N_IMPURITY in wanted_indices:
+            n_impurity.append(g.embedding["n_impurity"])
+        if LABEL_ENTROPY in wanted_indices:
+            label_entropy.append(g.embedding["label_entropy"])
+        if EDGE_STRENGTH in wanted_indices:
+            edge_strength.append(g.embedding["edge_strength"])
 
     data["labels"] = labels
     if BALABAN in wanted_indices:
@@ -107,6 +125,56 @@ def set_df_content(data, wanted_indices, embedded_graph_set):
         data["zagreb"] = zagreb
     if SCHULTZ in wanted_indices:
         data["schultz"] = schultz
+    if MOD_ZAGREB in wanted_indices:
+        data["mod_zagreb"] = mod_zagreb
+    if HYP_WIENER in wanted_indices:
+        data["hyp_wiener"] = hyp_wiener
+    if N_IMPURITY in wanted_indices:
+        data["n_impurity"] = n_impurity
+    if LABEL_ENTROPY in wanted_indices:
+        data["label_entropy"] = label_entropy
+    if EDGE_STRENGTH in wanted_indices:
+        data["edge_strength"] = edge_strength
+
+
+def calculate_top_atts(dataset, dataset_name):
+    embedded_graphs = []
+    successful_count = 0
+    unsuccessful_count = 0
+    successful_indices = []
+    edges = np.array([])
+    nodes = np.array([])
+    avg_degrees = np.array([])
+    for i in range(len(dataset)):
+        if i % 50 == 0:
+            print(f'Successfully Embedded {successful_count}/{len(dataset)} graphs')
+            print(f'Failed embedding on {unsuccessful_count}/{len(dataset)} graphs')
+        try:
+            g = dataset[i]
+            num_edges = int(len(g.edge_index[1]) / 2)
+            num_nodes = g.num_nodes
+            edges = np.append(edges, np.array([num_edges]))
+            nodes = np.append(nodes, np.array([num_nodes]))
+            avg_degrees = np.append(avg_degrees, np.array(np.mean(get_degrees(g).numpy())))
+            successful_count += 1
+            successful_indices.append(i)
+        except Exception as e:
+            print(e)
+            assert not is_connected(dataset[i])  # this assertion is made so that we make sure if an embedding fails,
+            # the reason behind the fail is that the graph isn't connected and not some other unexpected error occurs
+            unsuccessful_count += 1
+    print(f'Finished embedding successfully on {successful_count}/{len(dataset)} graphs but failed on '
+          f'{unsuccessful_count}/{len(dataset)} graphs')
+    print(f'{dataset_name}')
+    print(f'average edges: {np.mean(edges)}')
+    print(f'average nodes: {np.mean(nodes)}')
+    print(f'max edges: {np.max(edges)}')
+    print(f'min edges: {np.min(edges)}')
+    print(f'max nodes: {np.max(nodes)}')
+    print(f'min nodes: {np.min(nodes)}')
+    print(f'average degrees: {np.mean(avg_degrees)}')
+
+    return embedded_graphs
 
 
 def save_filter_split_file(successful_indices, dataset_name):
@@ -120,19 +188,34 @@ def save_filter_split_file(successful_indices, dataset_name):
 def create_df_and_save_to_csv(data, dataset_name):
     df = pd.DataFrame(data)
     print(df)
-    if not exists(f'embedded_{dataset_name}.csv'):
-        df.to_csv(f'embedded_{dataset_name}.csv', index=False)
+    if not exists(f'../embedded_{dataset_name}.csv'):
+        df.to_csv(f'../embedded_{dataset_name}.csv', index=False)
     else:
         i = 0
-        while exists(f'embedded_{dataset_name}_{i}.csv'):
+        while exists(f'../embedded_{dataset_name}_{i}.csv'):
             i += 1
-        df.to_csv(f'embedded_{dataset_name}_{i}.csv', index=False)
+        df.to_csv(f'../embedded_{dataset_name}_{i}.csv', index=False)
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/PTC_MR', name='PTC_MR')
+    dataset = TUDataset(root='/tmp/Mutagenicity', name='Mutagenicity')
+    calculate_top_atts(dataset, dataset.name)
+
     dataset_name = dataset.name
     wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
-                      EDGES, SCHULTZ]
-    embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices)
+                      EDGES, SCHULTZ, MOD_ZAGREB, HYP_WIENER, N_IMPURITY, LABEL_ENTROPY, EDGE_STRENGTH]
+
+    start_time = time()
+    embedded_graph_set = create_embedded_graph_set(dataset, wanted_indices, dataset_name)
+    embedding_time = time() - start_time
+    start_time = time()
     create_dataset(embedded_graph_set, wanted_indices, dataset_name)
+    saving_time = time() - start_time
+
+    total_time = datetime.utcfromtimestamp(saving_time + embedding_time).strftime('%H:%M:%S.%f')[:-4]
+    embedding_time = datetime.utcfromtimestamp(embedding_time).strftime('%H:%M:%S.%f')[:-4]
+    saving_time = datetime.utcfromtimestamp(saving_time).strftime('%H:%M:%S.%f')[:-4]
+
+    log(f"Embedding {dataset_name} time: {embedding_time}", "time")
+    log(f"Saving embedded {dataset_name} time: {saving_time}", "time")
+    log(f"Total {dataset_name} embedding time: {total_time}\n", "time")

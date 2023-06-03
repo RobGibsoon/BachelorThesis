@@ -1,10 +1,14 @@
 import argparse
 import csv
+import random
+from datetime import datetime
+from time import time
 
 import numpy as np
 import pandas as pd
 import torch
 from sklearn import svm
+from sklearn.feature_selection import f_classif
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
 from sklearn.neighbors import KNeighborsClassifier
@@ -53,24 +57,41 @@ class EmbeddingClassifier:
         clf_knn = KNeighborsClassifier()
 
         # perform feature selection
+        start_time = time()
         if self.feature_selection:
             clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
                                                             self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
+        bf_fs_time = time() - start_time
 
         # perform hyper parameter selection
+        start_time = time()
         clf_knn.fit(clf_X_train, self.y_train)
-        grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1)
+        grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False, verbose=1,
+                                   n_jobs=-1)
         grid_search.fit(clf_X_train, self.y_train)
+        grid_search_time = time() - start_time
         append_hyperparams_file(self.feature_selection, grid_search, clf_knn, self.dataset_name, DIR)
 
         # construct, train optimal model and perform predictions
         knn = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
                                    metric=grid_search.best_params_['metric'],
                                    n_neighbors=grid_search.best_params_['n_neighbors'])
-
+        start_time = time()
         knn.fit(clf_X_train, self.y_train)
+        clf_time = time() - start_time
+
+        # format and log the time
+        bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
+        grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
+        clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
+
+        if self.feature_selection:
+            log(f"BF FS time on {self.dataset_name} knn: {bf_fs_time}", "time")
+        log(f"Gridsearch time on {self.dataset_name} knn: {grid_search_time} \n"
+            f"Classification time on {self.dataset_name} knn: {clf_time}", "time")
+
         predictions = knn.predict(clf_X_test)
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
         save_preds(predictions, self.y_test, type(clf_knn).__name__, self.dataset_name, self.feature_selection)
@@ -84,16 +105,20 @@ class EmbeddingClassifier:
         clf_svm = svm.SVC()
 
         # perform feature selection
+        start_time = time()
         if self.feature_selection:
             clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
                                                             self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
+        bf_fs_time = time() - start_time
 
         # perform hyper parameter selection
+        start_time = time()
         grid_search = GridSearchCV(clf_svm, param_grid, cv=10, scoring='accuracy', error_score='raise',
-                                   return_train_score=False, verbose=1)
+                                   return_train_score=False, verbose=1, n_jobs=-1)
         grid_search.fit(clf_X_train, self.y_train)
+        grid_search_time = time() - start_time
         append_hyperparams_file(self.feature_selection, grid_search, clf_svm, self.dataset_name, DIR)
 
         # construct, train optimal model and perform predictions
@@ -101,26 +126,45 @@ class EmbeddingClassifier:
                       gamma=grid_search.best_params_['gamma'],
                       kernel=grid_search.best_params_['kernel'])
 
+        start_time = time()
         clf_svm.fit(clf_X_train, self.y_train)
+        clf_time = time() - start_time
+
+        # format and log the time
+        if self.feature_selection:
+            bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
+        grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
+        clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
+        if self.feature_selection:
+            log(f"BF FS time on {self.dataset_name} svm: {bf_fs_time}", "time")
+        log(f"Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
+            f"Classification time on {self.dataset_name} svm {clf_time}: ", "time")
+
         predictions = clf_svm.predict(clf_X_test)
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
         save_preds(predictions, self.y_test, type(clf_svm).__name__, self.dataset_name, self.feature_selection)
 
         return test_accuracy
 
-    def predict_ann(self):
+    def predict_ann(self, device):
         """train and predict 5 ANN's"""
 
         clf = ANN(self.X_train.shape[1])
+        start_time = time()
         if self.feature_selection:
             clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name)
+                                                            self.dataset_name, device)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
+        bf_fs_time = time() - start_time
 
-        ann_list = [ANN(clf_X_train.shape[1]) for i in range(5)]
+        ann_list = [ANN(clf_X_train.shape[1]).to(device) for i in range(5)]
+        seed_list = [random.randint(0, 9999999) for i in range(5)]
         accuracies = np.array([])
+        times = []
         for i, clf_ann in enumerate(ann_list):
+            seed = seed_list[i]
+            torch.manual_seed(seed)
             criterion = nn.CrossEntropyLoss()
             epochs = 300
             batch_size = 1
@@ -129,20 +173,76 @@ class EmbeddingClassifier:
             test_data = Data(clf_X_test, self.y_test)
             train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=0)
             test_loader = DataLoader(test_data, batch_size=batch_size)
-            accuracy, predictions, labels = train_ann(clf_ann, epochs, criterion, train_loader, test_loader)
+            start_time = time()
+            accuracy, predictions, labels = train_ann(clf_ann, epochs, criterion, train_loader, test_loader, device)
+            clf_time = time() - start_time
+            times.append(clf_time)
             accuracies = np.append(accuracies, accuracy)
             save_preds(predictions, self.y_test, type(clf_ann).__name__ + f"{i}", self.dataset_name,
                        self.feature_selection)
 
-            append_accuracies_file(dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
+            append_accuracies_file(self.dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
+
+        if self.feature_selection:
+            bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
+        clf_time = [datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4] for clf_time in times]
+        if self.feature_selection:
+            log(f"BF FS time on {self.dataset_name} svm: {bf_fs_time}", "time")
+        log(f"The 5 classification times on {self.dataset_name} ann: {clf_time}", "time")
         print(accuracies)
         avg_accuracy = np.sum(accuracies) / 5
         high_deviation = np.max(accuracies) - avg_accuracy
         low_deviation = avg_accuracy - min(accuracies)
         return avg_accuracy, high_deviation, low_deviation
 
+    def get_mrmr_features(self):
+        X = self.data.drop('labels', axis=1)
+        X = X.apply(pd.to_numeric, errors='coerce').astype(float)
+        assert not (X.isna().any().any())
+        y = pd.Series(self.y)
 
-def get_best_feature_set(clf, X_train, y):
+        selected_features = self.mrmr_classif(X=X, y=y)
+        print(f'ANOVA F-value/relevance for {self.dataset_name}:\n {selected_features[1]}')
+        print(f'Correlation matrix/redundancy for {self.dataset_name}:\n {selected_features[2]}')
+        append_features_file(f'ANOVA F-value/relevance for {self.dataset_name}:\n {selected_features[1]}')
+        append_features_file(f'Correlation matrix/redundancy for {self.dataset_name}:\n {selected_features[2]}')
+
+    def mrmr_classif(self, X, y):
+        """returns the redundancy and relevance for all features using Maximum Relevance — Minimum Redundancy
+        selected: list of best features
+        relevance: list of tuples of features and their scores
+        corr: redundancy in form of correlation matrix"""
+
+        F = pd.Series(f_classif(X, y)[0], index=X.columns)
+        corr = pd.DataFrame(.00001, index=X.columns, columns=X.columns)
+
+        # initialize list of selected features and list of excluded features
+        selected = []
+        scores = []
+        not_selected = X.columns.to_list()
+
+        # repeat K times
+        for i in range(X.shape[1]):
+
+            # compute (absolute) correlations between the last selected feature and all the (currently) excluded features
+            if i > 0:
+                last_selected = selected[-1]
+                corr.loc[not_selected, last_selected] = X[not_selected].corrwith(X[last_selected]).abs().clip(.00001)
+
+            # compute FCQ score for all the (currently) excluded features (this is Formula 2)
+            score = F.loc[not_selected] / corr.loc[not_selected, selected].mean(axis=1).fillna(.00001)
+
+            # find best feature, add it to selected and remove it from not_selected
+            best = score.index[score.argmax()]
+            scores.append((best, score.max()))
+            selected.append(best)
+            not_selected.remove(best)
+        relevance = F.loc[selected]
+
+        return selected, relevance, corr
+
+
+def get_best_feature_set(clf, X_train, y, device):
     """returns the best set for classifying using an SVM/KNN clf, uses cross-validation and takes the set with the
     highest mean accuracy"""
     n_features = X_train.shape[1]
@@ -158,21 +258,21 @@ def get_best_feature_set(clf, X_train, y):
             count += 1
     else:
         for subset in all_subsets(np.arange(n_features)):
-            score = mean_score_ann(np.reshape(X_train[:, subset], (X_train.shape[0], -1)), y)
+            score = mean_score_ann(np.reshape(X_train[:, subset], (X_train.shape[0], -1)), y, device)
             if score > best_score:
                 best_score, best_subset = score, subset
             log(f'subset {count}/{2 ** n_features - 1}', DIR)
             count += 1
 
-    log(f"best_subset: {np.array(subset)} with best score: {best_score}", DIR)
-    return np.array(subset), best_score
+    log(f"best_subset: {np.array(best_subset)} with best score: {best_score}", DIR)
+    append_features_file(f"best_subset: {np.array(best_subset)} with best score: {best_score}", DIR)
+    return np.array(best_subset), best_score
 
 
-def feature_selected_sets(clf, X_train, X_test, y, dn):
+def feature_selected_sets(clf, X_train, X_test, y, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
-    best_subset, best_score = get_best_feature_set(clf, X_train, y)
+    best_subset, best_score = get_best_feature_set(clf, X_train, y, device)
     features, count = get_feature_names(best_subset)
-    append_features_file(clf, features, count, dn)
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
@@ -207,20 +307,27 @@ def save_test_train_split(X, X_train, X_test, dataset_name):
 
 
 if __name__ == "__main__":
+    """"""
+    embedding_classifier = EmbeddingClassifier("PTC_MR", feature_selection=True)
+    embedding_classifier.get_mrmr_features()
     parser = argparse.ArgumentParser()
     parser.add_argument('--idx', type=str,
                         help='The index of which command should be completed according to the inputs in utils.')
     args = parser.parse_args()
     if args.idx is None:
-        raise argparse.ArgumentError(None, "Please a possible index from 0-26.")
+        raise argparse.ArgumentError(None, "Please pass an index from 0-28.")
 
     idx = int(args.idx)
     parameters = inputs[idx]
-    print(parameters)
+    log(f'{parameters}', DIR)
     dataset_name = parameters[0]
     clf_model = parameters[1]
     is_fs = parameters[2]
     is_reference = parameters[3]
+
+    # device used for ANNs
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     embedding_classifier = EmbeddingClassifier(dataset_name, feature_selection=is_fs)
     if not is_reference:
         if clf_model.lower() == 'knn':
@@ -233,12 +340,12 @@ if __name__ == "__main__":
             append_accuracies_file(dataset_name, clf_model, is_fs, acc, DIR)
         elif clf_model.lower() == 'ann':
             print(f'using ann and {dataset_name} and {is_fs}')
-            avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann()
+            avg_accuracy, high_deviation, low_deviation = embedding_classifier.predict_ann(device)
             log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
             append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, DIR)
         else:
-            raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
+            raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')
 
         log(f"Used feature selection: {False if is_fs == False else True}", DIR)
     else:
@@ -253,9 +360,9 @@ if __name__ == "__main__":
             log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
             append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
         elif clf_model.lower() == 'ann':
-            avg_accuracy, high_deviation, low_deviation = reference_classifier.predict_ann()
+            avg_accuracy, high_deviation, low_deviation = reference_classifier.predict_ann(device)
             log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
             append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, ref_dir, ref=True)
         else:
-            raise argparse.ArgumentTypeError('Invalid classifier. Pick between knn, svm or ann.')
+            raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')

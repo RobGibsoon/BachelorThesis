@@ -1,4 +1,6 @@
+import csv
 from itertools import chain, combinations
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
@@ -8,7 +10,8 @@ from scipy.sparse.csgraph import dijkstra
 from torch_geometric.utils import to_dense_adj, degree
 
 feature_names = {0: "balaban", 1: "estrada", 2: "narumi", 3: "padmakar-ivan", 4: "polarity-nr", 5: "randic",
-                 6: "szeged", 7: "wiener", 8: "zagreb", 9: "nodes", 10: "edges", 11: "schultz"}
+                 6: "szeged", 7: "wiener", 8: "zagreb", 9: "nodes", 10: "edges", 11: "schultz", 12: "", 13: "", 14: "",
+                 15: "", 16: "", }
 inputs = {
     0: ("PTC_MR", "ann", True, False),
     1: ("PTC_MR", "knn", True, False),
@@ -36,7 +39,71 @@ inputs = {
     23: ("Mutagenicity", "svm", None, True),
     24: ("MUTAG", "ann", None, True),
     25: ("MUTAG", "knn", None, True),
-    26: ("MUTAG", "svm", None, True)
+    26: ("MUTAG", "svm", None, True),
+    27: ("AIDS", "ann", False, True),
+    28: ("AIDS", "knn", False, True),
+    29: ("AIDS", "svm", False, True),
+    30: ("AIDS", "ann", True, True),
+    31: ("AIDS", "knn", True, True),
+    32: ("AIDS", "svm", True, True),
+    33: ("AIDS", "ann", None, True),
+    34: ("AIDS", "knn", None, True),
+    35: ("AIDS", "svm", None, True),
+    36: ("PTC_FM", "ann", False, True),
+    37: ("PTC_FM", "knn", False, True),
+    38: ("PTC_FM", "svm", False, True),
+    39: ("PTC_FM", "ann", True, True),
+    40: ("PTC_FM", "knn", True, True),
+    41: ("PTC_FM", "svm", True, True),
+    42: ("PTC_FM", "ann", None, True),
+    43: ("PTC_FM", "knn", None, True),
+    44: ("PTC_FM", "svm", None, True),
+    45: ("PTC_MM", "ann", False, True),
+    46: ("PTC_MM", "knn", False, True),
+    47: ("PTC_MM", "svm", False, True),
+    48: ("PTC_MM", "ann", True, True),
+    49: ("PTC_MM", "knn", True, True),
+    50: ("PTC_MM", "svm", True, True),
+    51: ("PTC_MM", "ann", None, True),
+    52: ("PTC_MM", "knn", None, True),
+    53: ("PTC_MM", "svm", None, True),
+    54: ("PTC_MM", "ann", False, True),
+    55: ("PTC_MM", "knn", False, True),
+    56: ("PTC_MM", "svm", False, True),
+    57: ("PTC_MM", "ann", True, True),
+    58: ("PTC_MM", "knn", True, True),
+    59: ("PTC_MM", "svm", True, True),
+    60: ("PTC_MM", "ann", None, True),
+    61: ("PTC_MM", "knn", None, True),
+    62: ("PTC_MM", "svm", None, True),
+    63: ("PTC_FR", "ann", False, True),
+    64: ("PTC_FR", "knn", False, True),
+    65: ("PTC_FR", "svm", False, True),
+    66: ("PTC_FR", "ann", True, True),
+    67: ("PTC_FR", "knn", True, True),
+    68: ("PTC_FR", "svm", True, True),
+    69: ("PTC_FR", "ann", None, True),
+    70: ("PTC_FR", "knn", None, True),
+    71: ("PTC_FR", "svm", None, True),
+    72: ("DHFR_MD", "ann", False, True),
+    73: ("DHFR_MD", "knn", False, True),
+    74: ("DHFR_MD", "svm", False, True),
+    75: ("DHFR_MD", "ann", True, True),
+    76: ("DHFR_MD", "knn", True, True),
+    77: ("DHFR_MD", "svm", True, True),
+    78: ("DHFR_MD", "ann", None, True),
+    79: ("DHFR_MD", "knn", None, True),
+    80: ("DHFR_MD", "svm", None, True),
+    81: ("DHFR_MD", "svm", None, True),
+    82: ("ER_MD", "ann", False, True),
+    83: ("ER_MD", "knn", False, True),
+    84: ("ER_MD", "svm", False, True),
+    85: ("ER_MD", "ann", True, True),
+    86: ("ER_MD", "knn", True, True),
+    87: ("ER_MD", "svm", True, True),
+    88: ("ER_MD", "ann", None, True),
+    89: ("ER_MD", "knn", None, True),
+    90: ("ER_MD", "svm", None, True)
 }
 
 BALABAN = 0
@@ -51,6 +118,11 @@ ZAGREB = 8
 NODES = 9
 EDGES = 10
 SCHULTZ = 11
+MOD_ZAGREB = 12
+HYP_WIENER = 13
+N_IMPURITY = 14
+LABEL_ENTROPY = 15
+EDGE_STRENGTH = 16
 
 NP_SEED = 42
 
@@ -61,6 +133,13 @@ def get_degrees(graph):
     edge_index = graph.edge_index[0]
     num_nodes = graph.num_nodes
     return degree(edge_index, num_nodes)
+
+
+def get_csv_idx_split(dn, idx_type):
+    file = open(f"log/index_splits/{dn}_{idx_type}_split.csv", "r")
+    idx_split = list(csv.reader(file, delimiter=','))
+    parsed_idx_split = [int(elt) for elt in idx_split[0]]
+    return parsed_idx_split
 
 
 def is_connected(graph):
@@ -76,6 +155,7 @@ def is_connected(graph):
 
 def log(text, dir):
     """used to print all the print statements into a log.txt file"""
+    Path(f"log/{dir}").mkdir(parents=True, exist_ok=True)
     with open(f'log/{dir}/log.txt', mode='a') as file:
         file.write(text + "\n")
     file.close()
@@ -113,13 +193,15 @@ def get_feature_names(feature_subset):
     return features, count
 
 
-def append_features_file(clf, features, count, dn):
+def append_features_file(text):
+    Path(f"log/features/").mkdir(parents=True, exist_ok=True)
     with open('log/features/features.txt', mode='a') as file:
-        file.write(f"The {count} optimal features selected for {type(clf).__name__} on {dn} were: {features}\n")
+        file.write(text)
     file.close()
 
 
 def append_accuracies_file(dn, clf, fs, acc, dir, index="", ref=False):
+    Path(f"log/accuracies/").mkdir(parents=True, exist_ok=True)
     if not ref:
         with open('log/accuracies/accuracies.txt', mode='a') as file:
             file.write(f'Accuracy for {dn} {clf}{index} fs={fs}: {acc}\n')
@@ -132,6 +214,7 @@ def append_accuracies_file(dn, clf, fs, acc, dir, index="", ref=False):
 
 
 def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
+    Path(f"log/hyperparameters/").mkdir(parents=True, exist_ok=True)
     if not ref:
         with open('log/hyperparameters/hyperparameters.txt', mode='a') as file:
             file.write(f"The optimal hyperparameters selected for {type(clf).__name__} on {dn} and fs = "
@@ -151,6 +234,7 @@ def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
 
 def save_preds(preds, labels, clf, dn, fs, ref=False):
     """saves labels and predictions to a csv-file"""
+    Path(f"log/predictions/").mkdir(parents=True, exist_ok=True)
     if not ref:
         data = {"preds": np.ravel(preds), "labels": np.ravel(labels)}
         df = pd.DataFrame(data)
