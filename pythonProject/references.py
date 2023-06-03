@@ -169,23 +169,6 @@ class ReferenceClassifier:
         return 100.0, 3.0, 2.0
 
 
-def create_custom_metric_parallel(test, train, alpha):
-    rows = len(test)
-    cols = len(train)
-    res_mat = np.zeros((rows, cols))
-
-    # Create a pool of worker processes
-    with Pool(cpu_count() - 3) as pool:
-        # Construct the arguments for each task
-        tasks = [(i, test[i], train, alpha) for i in range(rows)]
-
-        # Use imap_unordered to get the results as they become available
-        for i, res_row in pool.imap_unordered(compute_row, tasks):
-            # Store the result in the appropriate row of the matrix
-            res_mat[i] = res_row
-
-    res_mat = res_mat + res_mat.T - np.diag(np.diag(res_mat))
-    return res_mat
 
 
 def create_custom_metric(test, train, alpha):
@@ -199,13 +182,26 @@ def create_custom_metric(test, train, alpha):
     return res_mat
 
 
-def compute_row(args):
-    i, test_i, train, alpha = args
+def worker(args):
+    test, train, alpha = args
+    return graph_edit_distance(test, train, alpha)
+
+def create_custom_metric_parallel(test, train, alpha):
+    rows = len(test)
     cols = len(train)
-    res_row = np.zeros(cols)
-    for j in range(cols):
-        res_row[j] = graph_edit_distance(test_i, train[j], alpha)
-    return i, res_row
+
+    # Preparing tuples
+    tuples = [(test[i], train[j], alpha) for i in range(rows) for j in range(cols)]
+
+    # Using multiprocessing pool
+    with Pool() as pool:
+        res = pool.map(worker, tuples)
+
+    # Converting list to array and reshaping to matrix
+    res_mat = np.array(res).reshape(rows, cols)
+    assert np.abs(np.sum(res_mat)) > 0
+    return res_mat
+
 
 
 def graph_edit_distance(gr_1, gr_2, alpha):
