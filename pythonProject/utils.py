@@ -11,7 +11,7 @@ from torch_geometric.utils import to_dense_adj, degree
 
 feature_names = {0: "balaban", 1: "estrada", 2: "narumi", 3: "padmakar-ivan", 4: "polarity-nr", 5: "randic",
                  6: "szeged", 7: "wiener", 8: "zagreb", 9: "nodes", 10: "edges", 11: "schultz", 12: "mod_zagreb",
-                 13: "hyp_wiener", 14: "n_impurity", 15: "label_entropy", 16: "edge_strength", }
+                 13: "hyp_wiener", 14: "n_impurity", 15: "label_entropy", 16: "edge_strength"}
 inputs = {
     0: ("PTC_MR", "ann", True, False),
     1: ("PTC_MR", "knn", True, False),

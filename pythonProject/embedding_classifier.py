@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn import svm
-from sklearn.feature_selection import f_classif
+from sklearn.feature_selection import f_classif, SequentialFeatureSelector
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 
 from ann import mean_score_ann, ANN, Data, train_ann
 from references import ReferenceClassifier
-from utils import NP_SEED, get_feature_names, all_subsets, log, append_features_file, \
+from utils import NP_SEED, get_feature_names, log, append_features_file, \
     save_preds, append_hyperparams_file, inputs, append_accuracies_file
 
 np.random.seed(NP_SEED)
@@ -241,35 +241,51 @@ class EmbeddingClassifier:
         return selected, relevance, corr
 
 
-def get_best_feature_set(clf, X_train, y, device):
+def seq_fs_ann(X_train, y_train, device, n_features_to_select):
+    """returns the best set of selected features of size n_features_to_select by performing forward sequential
+    feature selection using a cross validation of 3 folds"""
+    selected_features = np.array([], dtype=np.int32)
+    for i in range(n_features_to_select):
+        scores_per_features = []
+        for j in range(X_train.shape[1]):
+            cur_sel_features = np.append(selected_features, int(j))
+            score = mean_score_ann(np.reshape(X_train[:, cur_sel_features], (X_train.shape[0], -1)), y_train, device)
+            scores_per_features.append((j, score))
+        best_feature = max(scores_per_features, key=lambda x: x[1])[0]
+        selected_features = np.append(selected_features, int(best_feature))
+
+    return selected_features
+
+
+def get_best_feature_set(clf, X_train, y_train, device):
     """returns the best set for classifying using an SVM/KNN clf, uses cross-validation and takes the set with the
     highest mean accuracy"""
     n_features = X_train.shape[1]
-    best_score = -np.inf
+    best_score = 0
     best_subset = None
     count = 1
     if isinstance(clf, (KNeighborsClassifier, SVC)):
-        for subset in all_subsets(np.arange(n_features)):
-            score = cross_val_score(clf, np.reshape(X_train[:, subset], (X_train.shape[0], -1)), y, cv=5).mean()
-            if score > best_score:
-                best_score, best_subset = score, subset
-            log(f'subset {count}/{2 ** n_features - 1}', DIR)
-            count += 1
+        sfs = SequentialFeatureSelector(estimator=clf, cv=5, n_jobs=-1, n_features_to_select='auto', scoring='accuracy')
+        sfs.fit(X_train, y_train)
+        best_subset = sfs.get_support(indices=True)
+
+        # THIS IS THE BRUTE FORCE CODE
+        # for subset in all_subsets(np.arange(n_features)):
+        #     score = cross_val_score(clf, np.reshape(X_train[:, subset], (X_train.shape[0], -1)), y_train, cv=5).mean()
+        #     if score > best_score:
+        #         best_score, best_subset = score, subset
+        #     log(f'subset {count}/{2 ** n_features - 1}', DIR)
+        #     count += 1
     else:
-        for subset in all_subsets(np.arange(n_features)):
-            score = mean_score_ann(np.reshape(X_train[:, subset], (X_train.shape[0], -1)), y, device)
-            if score > best_score:
-                best_score, best_subset = score, subset
-            log(f'subset {count}/{2 ** n_features - 1}', DIR)
-            count += 1
+        best_subset = seq_fs_ann(X_train, y_train, device, n_features_to_select=n_features // 2)
 
     log(f"best_subset: {np.array(best_subset)} with best score: {best_score}", DIR)
     return np.array(best_subset), best_score
 
 
-def feature_selected_sets(clf, X_train, X_test, y, dn, device='cpu'):
+def feature_selected_sets(clf, X_train, X_test, y_train, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
-    best_subset, best_score = get_best_feature_set(clf, X_train, y, device)
+    best_subset, best_score = get_best_feature_set(clf, X_train, y_train, device)
     features, count = get_feature_names(best_subset)
     append_features_file(f"the {count} best features for {dn} were: {features}")
     X_train_fs = X_train[:, best_subset]
@@ -314,7 +330,7 @@ if __name__ == "__main__":
                         help='The index of which command should be completed according to the inputs in utils.')
     args = parser.parse_args()
     if args.idx is None:
-        raise argparse.ArgumentError(None, "Please pass an index from 0-28.")
+        raise argparse.ArgumentError(None, "Please pass a valid index.")
 
     idx = int(args.idx)
     parameters = inputs[idx]
@@ -344,24 +360,19 @@ if __name__ == "__main__":
                 f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
             append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, DIR)
         else:
-            raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')
+            raise argparse.ArgumentTypeError('Please pass a valid index.')
 
         log(f"Used feature selection: {False if is_fs == False else True}", DIR)
     else:
         ref_dir = "references"
-    reference_classifier = ReferenceClassifier(dataset_name)
-    if clf_model.lower() == 'knn':
-        acc = reference_classifier.predict_knn()
-        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
-        append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
-    elif clf_model.lower() == 'svm':
-        acc = reference_classifier.predict_svm()
-        log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
-        append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
-    elif clf_model.lower() == 'ann':
-        avg_accuracy, high_deviation, low_deviation = reference_classifier.predict_ann(device)
-        log(f"Average accuracy for our testing {dataset_name} dataset with tuning using the ANN model is: {avg_accuracy} "
-            f"with highest being +{round(high_deviation, 2)} and the lowest -{round(low_deviation, 2)}", DIR)
-        append_accuracies_file(dataset_name, "ann_avg", is_fs, avg_accuracy, ref_dir, ref=True)
-    else:
-        raise argparse.ArgumentTypeError('"Please pass an index from 0-28."')
+        reference_classifier = ReferenceClassifier(dataset_name)
+        if clf_model.lower() == 'knn':
+            acc = reference_classifier.predict_knn()
+            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the KNN model is: {acc}", DIR)
+            append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
+        elif clf_model.lower() == 'svm':
+            acc = reference_classifier.predict_svm()
+            log(f"Accuracy for our testing {dataset_name} dataset with tuning using the SVM model is: {acc}", DIR)
+            append_accuracies_file(dataset_name, clf_model, is_fs, acc, ref_dir, ref=True)
+        else:
+            raise argparse.ArgumentTypeError('Please pass a valid index.')
