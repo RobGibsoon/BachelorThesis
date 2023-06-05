@@ -252,6 +252,8 @@ def seq_fs_ann(X_train, y_train, device, n_features_to_select):
             cur_sel_features = np.append(selected_features, int(j))
             score = mean_score_ann(np.reshape(X_train[:, cur_sel_features], (X_train.shape[0], -1)), y_train, device)
             scores_per_features.append((j, score))
+        log(f'Finished selection of {i + 1}/{n_features_to_select} with ANN', DIR)
+        print(f'Finished selection of {i + 1}/{n_features_to_select} with ANN')
         best_feature = max(scores_per_features, key=lambda x: x[1])[0]
         selected_features = np.append(selected_features, int(best_feature))
 
