@@ -180,6 +180,7 @@ class EmbeddingClassifier:
             accuracies = np.append(accuracies, accuracy)
             save_preds(predictions, self.y_test, type(clf_ann).__name__ + f"{i}", self.dataset_name,
                        self.feature_selection)
+            append_accuracies_file(dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
 
         if self.feature_selection:
             bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
@@ -287,7 +288,7 @@ def feature_selected_sets(clf, X_train, X_test, y_train, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
     best_subset, best_score = get_best_feature_set(clf, X_train, y_train, device)
     features, count = get_feature_names(best_subset)
-    append_features_file(f"the {count} best features for {dn} were: {features}")
+    append_features_file(f"The {count} on {type(clf).__name__} best features for {dn} were: {features}\n")
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
