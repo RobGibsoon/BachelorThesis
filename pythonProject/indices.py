@@ -269,7 +269,7 @@ def label_entropy(graph):
     return np.array(entropy(label_frequencies, base=2))
 
 
-def avg_edge_stength(graph):
+def avg_edge_strength(graph):
     """takes the average edge strength within a molecule"""
     assert graph.is_undirected()
 

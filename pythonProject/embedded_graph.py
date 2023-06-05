@@ -3,7 +3,7 @@ from torch_geometric.data import Data
 
 from indices import zagreb_index, polarity_nr_index, \
     wiener_index, randic_index, estrada_index, balaban_index, padmakar_ivan_index, \
-    szeged_index, narumi_index, schultz_index, avg_edge_stength, modified_zagreb_index, hyper_wiener_index, \
+    szeged_index, narumi_index, schultz_index, avg_edge_strength, modified_zagreb_index, hyper_wiener_index, \
     label_entropy, neighborhood_impurity
 from utils import BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES, EDGES, \
     SCHULTZ, MOD_ZAGREB, HYP_WIENER, N_IMPURITY, LABEL_ENTROPY, EDGE_STRENGTH
@@ -53,6 +53,6 @@ class EmbeddedGraph(Data):
         if LABEL_ENTROPY in wanted_indices:
             embedding["label_entropy"] = label_entropy(graph)
         if EDGE_STRENGTH in wanted_indices:
-            embedding["edge_strength"] = avg_edge_stength(graph)
+            embedding["edge_strength"] = avg_edge_strength(graph)
 
         return embedding

@@ -88,7 +88,7 @@ class EmbeddingClassifier:
         clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
 
         if self.feature_selection:
-            log(f"BF FS time on {self.dataset_name} knn: {bf_fs_time}", "time")
+            log(f"KNN FS time on {self.dataset_name} knn: {bf_fs_time}", "time")
         log(f"Gridsearch time on {self.dataset_name} knn: {grid_search_time} \n"
             f"Classification time on {self.dataset_name} knn: {clf_time}", "time")
 
@@ -136,7 +136,7 @@ class EmbeddingClassifier:
         grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
         clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
         if self.feature_selection:
-            log(f"BF FS time on {self.dataset_name} svm: {bf_fs_time}", "time")
+            log(f"SVM FS time on {self.dataset_name} svm: {bf_fs_time}", "time")
         log(f"Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
             f"Classification time on {self.dataset_name} svm {clf_time}: ", "time")
 
@@ -186,7 +186,7 @@ class EmbeddingClassifier:
             bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
         clf_time = [datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4] for clf_time in times]
         if self.feature_selection:
-            log(f"BF FS time on {self.dataset_name} svm: {bf_fs_time}", "time")
+            log(f"ANN FS time on {self.dataset_name} svm: {bf_fs_time}", "time")
         log(f"The 5 classification times on {self.dataset_name} ann: {clf_time}", "time")
         print(accuracies)
         avg_accuracy = np.sum(accuracies) / 5
@@ -260,15 +260,15 @@ def seq_fs_ann(X_train, y_train, device, n_features_to_select):
     return selected_features
 
 
-def get_best_feature_set(clf, X_train, y_train, device):
+def get_best_feature_set(clf, X_train, y_train, n_features_to_select, device):
     """returns the best set for classifying using an SVM/KNN clf, uses cross-validation and takes the set with the
     highest mean accuracy"""
-    n_features = X_train.shape[1]
     best_score = 0
     best_subset = None
     count = 1
     if isinstance(clf, (KNeighborsClassifier, SVC)):
-        sfs = SequentialFeatureSelector(estimator=clf, cv=5, n_jobs=-1, n_features_to_select='auto', scoring='accuracy')
+        sfs = SequentialFeatureSelector(estimator=clf, cv=5, n_jobs=-1, n_features_to_select=n_features_to_select,
+                                        scoring='accuracy')
         sfs.fit(X_train, y_train)
         best_subset = sfs.get_support(indices=True)
 
@@ -280,7 +280,7 @@ def get_best_feature_set(clf, X_train, y_train, device):
         #     log(f'subset {count}/{2 ** n_features - 1}', DIR)
         #     count += 1
     else:
-        best_subset = seq_fs_ann(X_train, y_train, device, n_features_to_select=n_features // 2)
+        best_subset = seq_fs_ann(X_train, y_train, device, n_features_to_select=n_features_to_select)
 
     log(f"best_subset: {np.array(best_subset)} with best score: {best_score}", DIR)
     return np.array(best_subset), best_score
@@ -288,9 +288,10 @@ def get_best_feature_set(clf, X_train, y_train, device):
 
 def feature_selected_sets(clf, X_train, X_test, y_train, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
-    best_subset, best_score = get_best_feature_set(clf, X_train, y_train, device)
+    n_features_to_select = X_train.shape[1] // 2
+    best_subset, best_score = get_best_feature_set(clf, X_train, y_train, n_features_to_select, device)
     features, count = get_feature_names(best_subset)
-    append_features_file(f"The {count} on {type(clf).__name__} best features for {dn} were: {features}\n")
+    append_features_file(f"The {count} best features for using {type(clf).__name__} on {dn} were: {features}\n")
     X_train_fs = X_train[:, best_subset]
     X_test_fs = X_test[:, best_subset]
     assert (X_train_fs.shape[0], len(best_subset)) == X_train_fs.shape
