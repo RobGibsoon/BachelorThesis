@@ -186,7 +186,7 @@ class EmbeddingClassifier:
             bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
         clf_time = [datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4] for clf_time in times]
         if self.feature_selection:
-            log(f"ANN FS time on {self.dataset_name} svm: {bf_fs_time}", "time")
+            log(f"ANN FS time on {self.dataset_name}: {bf_fs_time}", "time")
         log(f"The 5 classification times on {self.dataset_name} ann: {clf_time}", "time")
         print(accuracies)
         avg_accuracy = np.sum(accuracies) / 5
