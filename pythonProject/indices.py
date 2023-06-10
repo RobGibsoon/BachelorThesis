@@ -23,7 +23,7 @@ def narumi_index(graph, dataset_name):
     https://doi.org/10.1016/j.aml.2011.12.018"""
     assert graph.is_undirected()
     degrees = get_degrees(graph).numpy()
-    if dataset_name == "DHFR" or dataset_name == "ER_MD":
+    if dataset_name == "DHFR_MD" or dataset_name == "ER_MD":
         # an overflow is occasionally generated on these datasets, therefore 8 random degreees are chosen to
         # calculate the product of the degrees
         t = 8
@@ -269,7 +269,7 @@ def label_entropy(graph):
     return np.array(entropy(label_frequencies, base=2))
 
 
-def avg_edge_strength(graph):
+def avg_edge_weight(graph):
     """takes the average edge strength within a molecule"""
     assert graph.is_undirected()
 

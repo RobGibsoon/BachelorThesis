@@ -135,6 +135,7 @@ class ReferenceClassifier:
         prev_score = 0
         best_kernel_index = 0
         for i, cur_kernel in enumerate(kernel):
+            # idea: return_train_score=True, dann average nehmen, den speichern in scores=[], am schluss höchstes nehmen
             grid_search = GridSearchCV(clf, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
                                        return_train_score=False, verbose=1, n_jobs=-1)
             small_x_train, small_x_test, small_y_train, small_y_test = train_test_split(cur_kernel, y_train,

@@ -115,9 +115,9 @@ def main():
         append_accuracies_file(dataset_name, 'gnn', None, f'{accuracy * 100:.2f}%', DIR, index=i, ref=True)
 
     clf_time = [datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4] for clf_time in times]
-    log(f"The 5 classification times on {dataset_name} ann: {clf_time}", "time")
+    log(f"The 5 classification times on {dataset_name} gnn: {clf_time}", "time")
 
-    print(f'Average Accuracy over 5 runs: {np.mean(accuracies) * 100:.2f}%')
+    print(f'Average GNN Accuracy over 5 runs: {np.mean(accuracies) * 100:.2f}%')
     append_accuracies_file(dataset_name, 'gnn_average', None, f'{np.mean(accuracies) * 100:.2f}%', DIR, ref=True)
 
 

@@ -153,3 +153,7 @@ Classification time on PTC_MR knn: 00:00:00.00
 BF FS time on PTC_MR knn: 00:00:10.01
 Gridsearch time on PTC_MR knn: 00:00:01.25 
 Classification time on PTC_MR knn: 00:00:00.00
+Embedding DHFR_MD time: 00:02:14.77
+Saving embedded DHFR_MD time: 00:00:00.24
+Total DHFR_MD embedding time: 00:02:15.01
+

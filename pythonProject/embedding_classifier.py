@@ -7,8 +7,9 @@ from time import time
 import numpy as np
 import pandas as pd
 import torch
+from mrmr import mrmr_classif
 from sklearn import svm
-from sklearn.feature_selection import f_classif, SequentialFeatureSelector
+from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
@@ -20,7 +21,7 @@ from torch.utils.data import DataLoader
 from ann import mean_score_ann, ANN, Data, train_ann
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, log, append_features_file, \
-    save_preds, append_hyperparams_file, inputs, append_accuracies_file
+    save_preds, append_hyperparams_file, append_accuracies_file, inputs
 
 np.random.seed(NP_SEED)
 DIR = "embedding_classifier"
@@ -180,7 +181,7 @@ class EmbeddingClassifier:
             accuracies = np.append(accuracies, accuracy)
             save_preds(predictions, self.y_test, type(clf_ann).__name__ + f"{i}", self.dataset_name,
                        self.feature_selection)
-            append_accuracies_file(dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
+            append_accuracies_file(self.dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
 
         if self.feature_selection:
             bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
@@ -200,55 +201,20 @@ class EmbeddingClassifier:
         assert not (X.isna().any().any())
         y = pd.Series(self.y)
 
-        selected_features = self.mrmr_classif(X=X, y=y)
-        print(f'Selected Features for {self.dataset_name}: {selected_features[0]}')
-        print(f'ANOVA F-value/relevance for {self.dataset_name}:\n {selected_features[1]}')
-        print(f'Correlation matrix/redundancy for {self.dataset_name}:\n {selected_features[2]}')
-        append_features_file(f'ANOVA F-value/relevance for {self.dataset_name}:\n {selected_features[1]}')
-        append_features_file(f'Correlation matrix/redundancy for {self.dataset_name}:\n {selected_features[2]}')
-
-    def mrmr_classif(self, X, y):
-        """returns the redundancy and relevance for all features using Maximum Relevance — Minimum Redundancy
-        selected: list of best features
-        relevance: list of tuples of features and their scores
-        corr: redundancy in form of correlation matrix"""
-
-        F = pd.Series(f_classif(X, y)[0], index=X.columns)
-        corr = pd.DataFrame(.00001, index=X.columns, columns=X.columns)
-
-        # initialize list of selected features and list of excluded features
-        selected = []
-        scores = []
-        not_selected = X.columns.to_list()
-
-        # repeat K times
-        for i in range(X.shape[1]):
-
-            # compute (absolute) correlations between the last selected feature and all the (currently) excluded features
-            if i > 0:
-                last_selected = selected[-1]
-                corr.loc[not_selected, last_selected] = X[not_selected].corrwith(X[last_selected]).abs().clip(.00001)
-
-            # compute FCQ score for all the (currently) excluded features (this is Formula 2)
-            score = F.loc[not_selected] / corr.loc[not_selected, selected].mean(axis=1).fillna(.00001)
-
-            # find best feature, add it to selected and remove it from not_selected
-            best = score.index[score.argmax()]
-            scores.append((best, score.max()))
-            selected.append(best)
-            not_selected.remove(best)
-        relevance = F.loc[selected]
-
-        return selected, relevance, corr
+        selected_features = mrmr_classif(X=X, y=y, K=6, return_scores=True)
+        print(f'Selected Features for {self.dataset_name}: {selected_features[0]}', 'mrmr')
+        print(f'ANOVA F-value/relevance for {self.dataset_name}:\n {selected_features[1]}', 'mrmr')
+        print(f'Correlation matrix/redundancy for {self.dataset_name}:\n {selected_features[2]}', 'mrmr')
 
 
 def seq_fs_ann(X_train, y_train, device, n_features_to_select):
     """returns the best set of selected features of size n_features_to_select by performing forward sequential
     feature selection using a cross validation of 3 folds"""
     selected_features = np.array([], dtype=np.int32)
+    non_selected_features = list(range(X_train.shape[1]))
     for i in range(n_features_to_select):
         scores_per_features = []
-        for j in range(X_train.shape[1]):
+        for j in non_selected_features:
             cur_sel_features = np.append(selected_features, int(j))
             score = mean_score_ann(np.reshape(X_train[:, cur_sel_features], (X_train.shape[0], -1)), y_train, device)
             scores_per_features.append((j, score))
@@ -256,6 +222,7 @@ def seq_fs_ann(X_train, y_train, device, n_features_to_select):
         print(f'Finished selection of {i + 1}/{n_features_to_select} with ANN')
         best_feature = max(scores_per_features, key=lambda x: x[1])[0]
         selected_features = np.append(selected_features, int(best_feature))
+        non_selected_features.remove(best_feature)
 
     return selected_features
 
@@ -288,7 +255,7 @@ def get_best_feature_set(clf, X_train, y_train, n_features_to_select, device):
 
 def feature_selected_sets(clf, X_train, X_test, y_train, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
-    n_features_to_select = X_train.shape[1] // 2
+    n_features_to_select = 2  # X_train.shape[1] // 2
     best_subset, best_score = get_best_feature_set(clf, X_train, y_train, n_features_to_select, device)
     features, count = get_feature_names(best_subset)
     append_features_file(f"The {count} best features for using {type(clf).__name__} on {dn} were: {features}\n")
