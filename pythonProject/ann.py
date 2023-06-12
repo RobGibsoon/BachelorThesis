@@ -72,13 +72,13 @@ def train_ann(clf, epochs, criterion, train_loader, test_loader, device):
             # update results
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-    return 100 * correct / total, predictions, labels
+    return np.round(100 * correct / total, 2), predictions, labels
 
 
 class ANN(nn.Module):
     def __init__(self, input_dim):
         super(ANN, self).__init__()
-        self.input_dim = 12
+        self.input_dim = input_dim
         output_dim = 2
         hidden_layers = (input_dim + output_dim) // 2  # the mean between input_dim + output_dim
         self.linear1 = nn.Linear(input_dim, hidden_layers)

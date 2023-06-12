@@ -94,7 +94,7 @@ class EmbeddingClassifier:
             f"Classification time on {self.dataset_name} knn: {clf_time}", "time")
 
         predictions = knn.predict(clf_X_test)
-        test_accuracy = accuracy_score(self.y_test, predictions) * 100
+        test_accuracy = np.round(accuracy_score(self.y_test, predictions) * 100, 2)
         save_preds(predictions, self.y_test, type(clf_knn).__name__, self.dataset_name, self.feature_selection)
         return test_accuracy
 
@@ -142,7 +142,7 @@ class EmbeddingClassifier:
             f"Classification time on {self.dataset_name} svm {clf_time}: ", "time")
 
         predictions = clf_svm.predict(clf_X_test)
-        test_accuracy = accuracy_score(self.y_test, predictions) * 100
+        test_accuracy = np.round(accuracy_score(self.y_test, predictions) * 100, 2)
         save_preds(predictions, self.y_test, type(clf_svm).__name__, self.dataset_name, self.feature_selection)
 
         return test_accuracy
@@ -190,7 +190,7 @@ class EmbeddingClassifier:
             log(f"ANN FS time on {self.dataset_name}: {bf_fs_time}", "time")
         log(f"The 5 classification times on {self.dataset_name} ann: {clf_time}", "time")
         print(accuracies)
-        avg_accuracy = np.sum(accuracies) / 5
+        avg_accuracy = np.round(np.sum(accuracies) / 5, 2)
         high_deviation = np.max(accuracies) - avg_accuracy
         low_deviation = avg_accuracy - min(accuracies)
         return avg_accuracy, high_deviation, low_deviation
@@ -255,7 +255,7 @@ def get_best_feature_set(clf, X_train, y_train, n_features_to_select, device):
 
 def feature_selected_sets(clf, X_train, X_test, y_train, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
-    n_features_to_select = 2  # X_train.shape[1] // 2
+    n_features_to_select = X_train.shape[1] // 2
     best_subset, best_score = get_best_feature_set(clf, X_train, y_train, n_features_to_select, device)
     features, count = get_feature_names(best_subset)
     append_features_file(f"The {count} best features for using {type(clf).__name__} on {dn} were: {features}\n")
