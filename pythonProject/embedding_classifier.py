@@ -1,6 +1,5 @@
 import argparse
 import csv
-import random
 from datetime import datetime
 from time import time
 
@@ -160,7 +159,7 @@ class EmbeddingClassifier:
         bf_fs_time = time() - start_time
 
         ann_list = [ANN(clf_X_train.shape[1]).to(device) for i in range(5)]
-        seed_list = [random.randint(0, 9999999) for i in range(5)]
+        seed_list = [12345, 67890, 34567, 98765, 45678]
         accuracies = np.array([])
         times = []
         for i, clf_ann in enumerate(ann_list):

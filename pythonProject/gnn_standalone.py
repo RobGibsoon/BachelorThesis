@@ -97,7 +97,10 @@ def main():
 
     accuracies = []
     times = []
+    seed_list = [12345, 67890, 34567, 98765, 45678]
     for i in range(5):
+        seed = seed_list[i]
+        torch.manual_seed(seed)
         model = GNN(input_dim, hidden_dim, output_dim).to(device)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)

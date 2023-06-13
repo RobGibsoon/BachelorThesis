@@ -161,6 +161,7 @@ def create_custom_metric(test, train, alpha):
         for j in range(cols):
             res_mat[i, j] = graph_edit_distance(test[i], train[j], alpha)
     assert np.abs(np.sum(res_mat)) > 0
+    print("created metric")
     return res_mat
 
 
