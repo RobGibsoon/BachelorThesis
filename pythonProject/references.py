@@ -34,8 +34,8 @@ class ReferenceClassifier:
         test_split = get_csv_idx_split(self.dataset_name, "test")
         train_graphs = [self.X[idx] for idx in train_split]
         test_graphs = [self.X[idx] for idx in test_split]
-        self.y_train = [self.y[idx] for idx in train_split]
-        self.y_test = [self.y[idx] for idx in test_split]
+        self.y_train = np.array([self.y[idx] for idx in train_split])
+        self.y_test = np.array([self.y[idx] for idx in test_split])
         alpha_values = np.arange(0.05, 1.0, 0.1)
         self.kernelized_data_train = [create_custom_metric(train_graphs, train_graphs, alpha) for alpha in
                                       alpha_values]
@@ -137,9 +137,11 @@ class ReferenceClassifier:
         for i, cur_kernel in enumerate(kernel):
             # idea: return_train_score=True, dann average nehmen, den speichern in scores=[], am schluss höchstes nehmen
             grid_search = GridSearchCV(clf, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
-                                       return_train_score=False, verbose=1, n_jobs=-1)
+                                       return_train_score=True, verbose=1, n_jobs=-1)
+            print('y_train shape: ', self.y_train.shape)
+            print('cur_kernel shape: ', cur_kernel.shape, '\n')
             grid_search.fit(cur_kernel, np.ravel(y_train))
-            scores = grid_search.cv_results_
+            scores = grid_search.cv_results_['mean_test_scores']
             mean_score = np.mean(scores)
 
             if mean_score > prev_score:
