@@ -12,13 +12,13 @@ from cyged.graph_pkg_core.graph.label.label_node_vector import LabelNodeVector
 from cyged.graph_pkg_core.graph.node import Node
 from sklearn import svm
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import GridSearchCV, train_test_split
+from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
 from torch_geometric.data import Data
 from torch_geometric.datasets import TUDataset
 
-from utils import append_hyperparams_file, save_preds, append_accuracies_file, log, get_csv_idx_split, NP_SEED
+from utils import append_hyperparams_file, save_preds, append_accuracies_file, log, get_csv_idx_split
 
 DIR = "references"
 
@@ -138,28 +138,12 @@ class ReferenceClassifier:
             # idea: return_train_score=True, dann average nehmen, den speichern in scores=[], am schluss höchstes nehmen
             grid_search = GridSearchCV(clf, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
                                        return_train_score=False, verbose=1, n_jobs=-1)
-            small_x_train, small_x_test, small_y_train, small_y_test = train_test_split(cur_kernel, y_train,
-                                                                                        test_size=0.4,
-                                                                                        random_state=NP_SEED)
-            log(f'Completing {clf} girdsearch with small param grid on {self.dataset_name}({i + 1}/'
-                f'{len(self.kernelized_data_train)})', DIR)
-            grid_search.fit(small_x_train, np.ravel(small_y_train))
+            grid_search.fit(cur_kernel, np.ravel(y_train))
+            scores = grid_search.cv_results_
+            mean_score = np.mean(scores)
 
-            # construct and train model
-            if isinstance(clf, SVC):
-                clf = SVC(C=grid_search.best_params_['C'],
-                          kernel='precomputed')
-            else:
-                clf = KNeighborsClassifier(algorithm=grid_search.best_params_['algorithm'],
-                                           n_neighbors=grid_search.best_params_['n_neighbors'],
-                                           metric='precomputed')
-
-            clf.fit(small_x_train, np.ravel(small_y_train))
-
-            # predict and update if better score
-            score = clf.score(small_x_test, np.ravel(small_y_test))
-            if score > prev_score:
-                prev_score = score
+            if mean_score > prev_score:
+                prev_score = mean_score
                 best_kernel_index = i
 
         append_hyperparams_file(False, f"Found best alpha: {np.arange(0.05, 1.0, 0.1)[best_kernel_index]}", clf,
