@@ -56,6 +56,7 @@ def train_ann(clf, epochs, criterion, train_loader, test_loader, device):
             running_loss += loss.item()
         if (epoch + 1) % 50 == 0:
             log(f'[{epoch + 1}/{epochs}] loss: {running_loss / 2000:.5f}', DIR)
+            print(f'[{epoch + 1}/{epochs}] loss: {running_loss / 2000:.5f}')
 
     correct, total = 0, 0
     predictions = []
@@ -66,13 +67,13 @@ def train_ann(clf, epochs, criterion, train_loader, test_loader, device):
             # calculate output by running through the network
             outputs = clf(inputs)
             # get the predictions
-            __, predicted = torch.max(outputs.data, 1)
-            predictions.append(predicted.item())
-            labels_total.append(labels.item())
+            _, predicted = torch.max(outputs.data, 1)
+            predictions.extend(predicted.cpu().numpy())
+            labels_total.extend(labels.cpu().numpy())
             # update results
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-    return np.round(100 * correct / total, 2), predictions, labels
+    return np.round(100 * correct / total, 2), predictions, labels_total
 
 
 class ANN(nn.Module):
