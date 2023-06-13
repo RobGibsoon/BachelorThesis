@@ -16,7 +16,7 @@ def mean_score_ann(X_train, y, device):
     clf = ANN(X_train.shape[1]).to(device)
     criterion = nn.CrossEntropyLoss()
     epochs = 100
-    batch_size = 64
+    batch_size = 32
     k = 3
     splits = KFold(n_splits=k, shuffle=True, random_state=42)
     mean_val_acc = 0
@@ -53,10 +53,11 @@ def train_ann(clf, epochs, criterion, train_loader, test_loader, device):
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
+            scheduler.step()
             running_loss += loss.item()
         if (epoch + 1) % 50 == 0:
-            log(f'[{epoch + 1}/{epochs}] loss: {running_loss / 2000:.5f}', DIR)
-            print(f'[{epoch + 1}/{epochs}] loss: {running_loss / 2000:.5f}')
+            log(f'[{epoch + 1}/{epochs}] loss: {running_loss / len(train_loader):.5f}', DIR)
+            print(f'[{epoch + 1}/{epochs}] loss: {running_loss / len(train_loader):.5f}')
 
     correct, total = 0, 0
     predictions = []

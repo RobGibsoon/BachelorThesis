@@ -83,7 +83,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data = TUDataset(root=f'/tmp/{dataset_name}', name=f'{dataset_name}')
     input_dim = data.num_node_features
-    hidden_dim = 64
+    hidden_dim = 32
     output_dim = data.num_classes
     epochs = 300
     filter_split = get_csv_idx_split(dataset_name, "filter")
