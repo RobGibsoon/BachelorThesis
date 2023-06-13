@@ -168,7 +168,7 @@ class EmbeddingClassifier:
             torch.manual_seed(seed)
             criterion = nn.CrossEntropyLoss()
             epochs = 300
-            batch_size = 1
+            batch_size = 64
 
             train_data = Data(clf_X_train, self.y_train)
             test_data = Data(clf_X_test, self.y_test)

@@ -16,7 +16,7 @@ def mean_score_ann(X_train, y, device):
     clf = ANN(X_train.shape[1]).to(device)
     criterion = nn.CrossEntropyLoss()
     epochs = 100
-    batch_size = 1
+    batch_size = 64
     k = 3
     splits = KFold(n_splits=k, shuffle=True, random_state=42)
     mean_val_acc = 0

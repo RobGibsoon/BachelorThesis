@@ -19,14 +19,11 @@ class GNN(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
         super(GNN, self).__init__()
         self.conv1 = GCNConv(input_dim, hidden_dim)
-        self.conv2 = GCNConv(hidden_dim, hidden_dim)
         self.classifier = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, data):
         x, edge_index, batch = data.x, data.edge_index, data.batch
         x = self.conv1(x, edge_index)
-        x = torch.relu(x)
-        x = self.conv2(x, edge_index)
         x = torch.relu(x)
 
         # Pooling
@@ -88,7 +85,7 @@ def main():
     input_dim = data.num_node_features
     hidden_dim = 64
     output_dim = data.num_classes
-    epochs = 100
+    epochs = 300
     filter_split = get_csv_idx_split(dataset_name, "filter")
     X = [data[idx] for idx in filter_split]
     train_split = get_csv_idx_split(dataset_name, "train")

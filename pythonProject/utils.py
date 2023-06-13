@@ -31,13 +31,11 @@ inputs = {
     15: ("MUTAG", "ann", False, False),
     16: ("MUTAG", "knn", False, False),
     17: ("MUTAG", "svm", False, False),
-    18: ("PTC_MR", "ann", None, True),
+
     19: ("PTC_MR", "knn", None, True),
     20: ("PTC_MR", "svm", None, True),
-    21: ("Mutagenicity", "ann", None, True),
     22: ("Mutagenicity", "knn", None, True),
     23: ("Mutagenicity", "svm", None, True),
-    24: ("MUTAG", "ann", None, True),
     25: ("MUTAG", "knn", None, True),
     26: ("MUTAG", "svm", None, True),
 
