@@ -185,10 +185,12 @@ class EmbeddingClassifier:
 
         if self.feature_selection:
             bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
+        average_clf_time = round(sum(times) / len(times), 2)
         clf_time = [datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4] for clf_time in times]
         if self.feature_selection:
             log(f"ANN FS time on {self.dataset_name}: {bf_fs_time}", "time")
         log(f"The 5 classification times on {self.dataset_name} ann: {clf_time}", "time")
+        log(f"The average classification time on {self.dataset_name} ann: {average_clf_time}", "time")
         print(accuracies)
         avg_accuracy = np.round(np.sum(accuracies) / 5, 2)
         high_deviation = np.max(accuracies) - avg_accuracy
