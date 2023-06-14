@@ -131,7 +131,6 @@ class ReferenceClassifier:
         prev_score = 0
         best_kernel_index = 0
         for i, cur_kernel in enumerate(kernel):
-            # idea: return_train_score=True, dann average nehmen, den speichern in scores=[], am schluss höchstes nehmen
             grid_search = GridSearchCV(clf, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
                                        return_train_score=True, verbose=1, n_jobs=-1)
             print('y_train shape: ', y_train.shape)
@@ -199,7 +198,7 @@ def data_to_custom_graph(data: Data):
 
     graph = Graph("", "", n)
 
-    return 1  # graph
+    return graph
 
 
 if __name__ == "__main__":
