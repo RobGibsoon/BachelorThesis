@@ -6,10 +6,6 @@ import numpy as np
 from cyged.graph_pkg_core import GED
 from cyged.graph_pkg_core import Graph
 from cyged.graph_pkg_core.edit_cost.edit_cost_vector import EditCostVector
-from cyged.graph_pkg_core.graph.edge import Edge
-from cyged.graph_pkg_core.graph.label.label_edge import LabelEdge
-from cyged.graph_pkg_core.graph.label.label_node_vector import LabelNodeVector
-from cyged.graph_pkg_core.graph.node import Node
 from sklearn import svm
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV
@@ -53,7 +49,7 @@ class ReferenceClassifier:
 
         # find best alpha
         clf_knn = KNeighborsClassifier(metric='precomputed')
-        best_kernel_index = self.find_best_alpha(clf_knn, self.kernelized_data_test, self.y_train, param_grid)
+        best_kernel_index = self.find_best_alpha(clf_knn, self.kernelized_data_train, self.y_train, param_grid)
 
         # perform gridsearch using kernel with best alpha
         grid_search = GridSearchCV(clf_knn, param_grid, cv=10, scoring='accuracy', return_train_score=False,
@@ -138,10 +134,10 @@ class ReferenceClassifier:
             # idea: return_train_score=True, dann average nehmen, den speichern in scores=[], am schluss höchstes nehmen
             grid_search = GridSearchCV(clf, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
                                        return_train_score=True, verbose=1, n_jobs=-1)
-            print('y_train shape: ', self.y_train.shape)
+            print('y_train shape: ', y_train.shape)
             print('cur_kernel shape: ', cur_kernel.shape, '\n')
             grid_search.fit(cur_kernel, np.ravel(y_train))
-            scores = grid_search.cv_results_['mean_test_scores']
+            scores = grid_search.cv_results_['mean_test_score']
             mean_score = np.mean(scores)
 
             if mean_score > prev_score:
@@ -203,22 +199,12 @@ def data_to_custom_graph(data: Data):
 
     graph = Graph("", "", n)
 
-    # Add nodes to the custom graph
-    for i, node_feat in enumerate(data.x.numpy().astype(np.double)):
-        graph.add_node(Node(i, LabelNodeVector(node_feat)))
-
-    # Add edges to the custom graph
-    edge_index = data.edge_index.numpy()
-    for i in range(0, edge_index.shape[1], 2):
-        src, dest = edge_index[:, i]
-        graph.add_edge(Edge(src, dest, LabelEdge(0)))
-
-    return graph
+    return 1  # graph
 
 
 if __name__ == "__main__":
     # use this for developing
-    dataset_name = "PTC_MR"
+    dataset_name = "MUTAG"
 
     reference_classifier = ReferenceClassifier(dataset_name)
     svm_acc = reference_classifier.predict_svm()
