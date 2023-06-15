@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 from itertools import chain, combinations
 from pathlib import Path
 
@@ -140,9 +141,11 @@ def is_connected(graph):
 
 def log(text, dir):
     """used to print all the print statements into a log.txt file"""
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
     Path(f"log/{dir}").mkdir(parents=True, exist_ok=True)
     with open(f'log/{dir}/log.txt', mode='a') as file:
-        file.write(text + "\n")
+        file.write(current_time + ": " + text + "\n")
     file.close()
 
 
