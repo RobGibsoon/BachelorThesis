@@ -79,8 +79,8 @@ class ReferenceClassifier:
         save_preds(predictions, self.y_test, type(best_knn).__name__, self.dataset_name, False, ref=True)
         grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
         clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
-        log(f"Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
-            f"Classification time on {self.dataset_name} svm {clf_time}: ", "time")
+        log(f"Reference Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
+            f"Reference Classification time on {self.dataset_name} svm {clf_time}: ", "time")
 
         return test_accuracy
 
@@ -121,8 +121,8 @@ class ReferenceClassifier:
         # perform prediction and log data
         grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
         clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
-        log(f"Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
-            f"Classification time on {self.dataset_name} svm {clf_time}: ", "time")
+        log(f"Reference Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
+            f"Reference Classification time on {self.dataset_name} svm {clf_time}: ", "time")
 
         predictions = best_svm.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100

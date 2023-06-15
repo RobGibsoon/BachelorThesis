@@ -18,6 +18,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from ann import mean_score_ann, ANN, Data, train_ann
+from features_to_indexes import mRMR_applied_datasets
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, log, append_features_file, \
     save_preds, append_hyperparams_file, append_accuracies_file, inputs
@@ -59,8 +60,10 @@ class EmbeddingClassifier:
         # perform feature selection
         start_time = time()
         if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name)
+            # This commented code is for SFS
+            # clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
+            #                                                 self.dataset_name, device)
+            clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -107,8 +110,10 @@ class EmbeddingClassifier:
         # perform feature selection
         start_time = time()
         if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name)
+            # This commented code is for SFS
+            # clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
+            #                                                 self.dataset_name, device)
+            clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -152,8 +157,10 @@ class EmbeddingClassifier:
         clf = ANN(self.X_train.shape[1])
         start_time = time()
         if self.feature_selection:
-            clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
+            # This commented code is for SFS
+            # clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
+            #                                                 self.dataset_name, device)
+            clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
