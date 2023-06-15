@@ -18,7 +18,6 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from ann import mean_score_ann, ANN, Data, train_ann
-from features_to_indexes import mRMR_applied_datasets
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, log, append_features_file, \
     save_preds, append_hyperparams_file, append_accuracies_file, inputs
@@ -60,10 +59,11 @@ class EmbeddingClassifier:
         # perform feature selection
         start_time = time()
         if self.feature_selection:
-            # This commented code is for SFS
-            # clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
-            #                                                 self.dataset_name, device)
-            clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            # This code is for SFS
+            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name, device)
+            # This code is for mRMR
+            # clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -110,10 +110,11 @@ class EmbeddingClassifier:
         # perform feature selection
         start_time = time()
         if self.feature_selection:
-            # This commented code is for SFS
-            # clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
-            #                                                 self.dataset_name, device)
-            clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            # This code is for SFS
+            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name, device)
+            # This code is for mRMR
+            # clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -154,13 +155,14 @@ class EmbeddingClassifier:
     def predict_ann(self, device):
         """train and predict 5 ANN's"""
 
-        clf = ANN(self.X_train.shape[1])
+        clf_ann = ANN(self.X_train.shape[1])
         start_time = time()
         if self.feature_selection:
-            # This commented code is for SFS
-            # clf_X_train, clf_X_test = feature_selected_sets(clf, self.X_train, self.X_test, self.y_train,
-            #                                                 self.dataset_name, device)
-            clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            # This code is for SFS
+            clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name, device)
+            # This code is for mRMR
+            # clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -263,7 +265,7 @@ def get_best_feature_set(clf, X_train, y_train, n_features_to_select, device):
 
 def feature_selected_sets(clf, X_train, X_test, y_train, dn, device='cpu'):
     """returns the modified training and test sets after performing feature selection on them"""
-    n_features_to_select = X_train.shape[1] // 2
+    n_features_to_select = 10  # X_train.shape[1] // 2
     best_subset, best_score = get_best_feature_set(clf, X_train, y_train, n_features_to_select, device)
     features, count = get_feature_names(best_subset)
     append_features_file(f"The {count} best features for using {type(clf).__name__} on {dn} were: {features}\n")
