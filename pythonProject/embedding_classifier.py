@@ -64,7 +64,7 @@ class EmbeddingClassifier:
             # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
             #                                                 self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_knn)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -116,7 +116,7 @@ class EmbeddingClassifier:
             # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
             #                                                 self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_svm)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -164,7 +164,7 @@ class EmbeddingClassifier:
             # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
             #                                                 self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_ann)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
