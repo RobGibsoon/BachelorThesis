@@ -101,12 +101,29 @@ top_5_mRMR_features = {"PTC_MR": [14, 2, 15, 1, 0],
                        "ER_MD": [5, 15, 12, 0, 0],
                        "DHFR_MD": [12, 15, 9, 5, 0]
                        }
+sfs_features = {
+    "PTC_MR": [10, 3, 7, 9, 4, 8, 1, 12, 0, 2],
+    "PTC_MM": [0, 1, 8, 3, 2, 16, 4, 5, 14, 6],
+    "PTC_FM": [1, 0, 8, 9, 10, 16, 2, 12, 4, 13],
+    "PTC_FR": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "MUTAG": [5, 0, 2, 8, 4, 9, 14, 12, 6, 3],
+    "Mutagenicity": [16, 9, 8, 1, 15, 7, 10, 5, 11, 14],
+    "ER_MD": [0, 1, 2, 3, 7, 10, 14, 12, 4, 11],
+    "DHFR_MD": [2, 0, 1, 3, 4, 8, 5, 10, 6, 12]
+}
 
 
 def mRMR_applied_datasets(X_train, X_test, dataset_name):
     """helper method for embedding_classifier, returns the modified X_train and X_tests"""
     X_train_fs = X_train[:, top_5_mRMR_features[dataset_name]]
     X_test_fs = X_test[:, top_5_mRMR_features[dataset_name]]
+    return X_train_fs, X_test_fs
+
+
+def sfs_applied_datasets(X_train, X_test, dataset_name):
+    """helper method for embedding_classifier, returns the modified X_train and X_tests"""
+    X_train_fs = X_train[:, sfs_features[dataset_name]]
+    X_test_fs = X_test[:, sfs_features[dataset_name]]
     return X_train_fs, X_test_fs
 
 
@@ -240,7 +257,6 @@ def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
 
 def save_preds(preds, labels, clf, dn, fs, ref=False):
     """saves labels and predictions to a csv-file"""
-    fs = 'mRMR'  # todo rollback after completing mRMR
     Path(f"log/predictions/").mkdir(parents=True, exist_ok=True)
     if not ref:
         data = {"preds": np.ravel(preds), "labels": np.ravel(labels)}
