@@ -46,8 +46,8 @@ class EmbeddingClassifier:
         self.X = scaler.transform(self.X)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
                                                                                 random_state=NP_SEED)
-        save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
-        print('saved test_train splits')
+        # save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
+        # print('saved test_train splits')
 
     def predict_knn(self):
         """train and predict with knn"""

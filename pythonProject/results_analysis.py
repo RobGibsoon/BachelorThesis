@@ -12,6 +12,8 @@ from utils import feature_names, inputs
 def read_csv_predictions(dn, clf, fs):
     """nullhypothesis is that the two compared classification methods are equal
     if we discard the hypothesis, we conclude that the embedding (E1) has a higher average accuracy than the reference (E2)"""
+    # todo Check whether mRMR or SFS selection was used. If SFS -> fs can be left alone, if mRMR -> uncomment next line
+    fs = 'mRMR'
     if clf == "ann":
         z_scores = []
         for i in range(5):
