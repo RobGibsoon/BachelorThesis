@@ -92,6 +92,24 @@ inputs = {
     90: ("ER_MD", "svm", None, True)
 }
 
+top_5_mRMR_features = {"PTC_MR": [14, 2, 15, 1, 0],
+                       "PTC_MM": [14, 2, 15, 1, 0],
+                       "PTC_FM": [14, 2, 16, 15, 8],
+                       "PTC_FR": [14, 0, 1, 2, 15],
+                       "MUTAG": [8, 0, 10, 5, 9],
+                       "Mutagenicity": [0, 13, 16, 15, 14],
+                       "ER_MD": [5, 15, 12, 0, 0],
+                       "DHFR_MD": [12, 15, 9, 5, 0]
+                       }
+
+
+def mRMR_applied_datasets(X_train, X_test, dataset_name):
+    """helper method for embedding_classifier, returns the modified X_train and X_tests"""
+    X_train_fs = X_train[:, top_5_mRMR_features[dataset_name]]
+    X_test_fs = X_test[:, top_5_mRMR_features[dataset_name]]
+    return X_train_fs, X_test_fs
+
+
 BALABAN = 0
 ESTRADA = 1
 NARUMI = 2
@@ -222,6 +240,7 @@ def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
 
 def save_preds(preds, labels, clf, dn, fs, ref=False):
     """saves labels and predictions to a csv-file"""
+    fs = 'mRMR'  # todo rollback after completing mRMR
     Path(f"log/predictions/").mkdir(parents=True, exist_ok=True)
     if not ref:
         data = {"preds": np.ravel(preds), "labels": np.ravel(labels)}

@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from ann import mean_score_ann, ANN, Data, train_ann
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, log, append_features_file, \
-    save_preds, append_hyperparams_file, append_accuracies_file, inputs
+    save_preds, append_hyperparams_file, append_accuracies_file, inputs, mRMR_applied_datasets
 
 np.random.seed(NP_SEED)
 DIR = "embedding_classifier"
@@ -38,6 +38,7 @@ class EmbeddingClassifier:
         print(f'torch cuda is available: {torch.cuda.is_available()}')
         self.y = self.data['labels'].values
         self.X = self.data.drop('labels', axis=1).values.astype(float)
+        print('amount of non-unique rows: ', len(self.X) - len(np.unique(self.X, axis=0)))
 
         # standardizing X, use z-standardization
         scaler = StandardScaler()
@@ -60,10 +61,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # This code is for SFS
-            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, "")
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
+            #                                                self.dataset_name, "")
             # This code is for mRMR
-            # clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -112,10 +113,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # This code is for SFS
-            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, "")
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
+            #                                                self.dataset_name, "")
             # This code is for mRMR
-            # clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -160,10 +161,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # This code is for SFS
-            clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
+            #                                               self.dataset_name, device)
             # This code is for mRMR
-            # clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
