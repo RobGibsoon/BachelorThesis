@@ -64,7 +64,7 @@ def train_model(model, epochs, criterion, optimizer, scheduler, train_loader, te
 
     with open(f'log/predictions/predictions_gnn_{dataset_name}_{run}.csv', 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['predictions'])
+        writer.writerow(['preds'])
         writer.writerows(zip(predictions))
 
     return correct / len(test_loader.dataset)

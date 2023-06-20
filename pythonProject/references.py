@@ -131,7 +131,7 @@ class ReferenceClassifier:
         return test_accuracy
 
     def find_best_alpha(self, clf, kernel, y_train, small_param_grid):
-        # perform hyper parameter selection
+        """selects the best alpha from the different provided kernels by using grid search"""
         prev_score = 0
         best_kernel_index = 0
         for i, cur_kernel in enumerate(kernel):
@@ -147,6 +147,7 @@ class ReferenceClassifier:
             mean_score = np.mean(scores)
 
             if mean_score > prev_score:
+                # update best score and alpha if better values are found
                 prev_score = mean_score
                 best_kernel_index = i
 

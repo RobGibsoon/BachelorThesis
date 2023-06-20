@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from ann import mean_score_ann, ANN, Data, train_ann
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, log, append_features_file, \
-    save_preds, append_hyperparams_file, append_accuracies_file, inputs
+    save_preds, append_hyperparams_file, append_accuracies_file, inputs, sfs_applied_datasets
 
 np.random.seed(NP_SEED)
 DIR = "embedding_classifier"
@@ -38,15 +38,16 @@ class EmbeddingClassifier:
         print(f'torch cuda is available: {torch.cuda.is_available()}')
         self.y = self.data['labels'].values
         self.X = self.data.drop('labels', axis=1).values.astype(float)
+        print('amount of non-unique rows: ', len(self.X) - len(np.unique(self.X, axis=0)))
 
-        # standardizing X
+        # standardizing X, use z-standardization
         scaler = StandardScaler()
         scaler.fit(self.X)
         self.X = scaler.transform(self.X)
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
                                                                                 random_state=NP_SEED)
-        save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
-        print('saved test_train splits')
+        # save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
+        # print('saved test_train splits')
 
     def predict_knn(self):
         """train and predict with knn"""
@@ -59,11 +60,11 @@ class EmbeddingClassifier:
         # perform feature selection
         start_time = time()
         if self.feature_selection:
-            # This code is for SFS
-            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
-            # This code is for mRMR
-            # clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            # The code below is for finding the best SFS features
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
+            #                                                 self.dataset_name, device)
+            # The code below is for getting the best features once they have already been found and hard coded into utils
+            clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_knn)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -95,6 +96,7 @@ class EmbeddingClassifier:
         log(f"Gridsearch time on {self.dataset_name} knn: {grid_search_time} \n"
             f"Classification time on {self.dataset_name} knn: {clf_time}", "time")
 
+        # perform and log predictions
         predictions = knn.predict(clf_X_test)
         test_accuracy = np.round(accuracy_score(self.y_test, predictions) * 100, 2)
         save_preds(predictions, self.y_test, type(clf_knn).__name__, self.dataset_name, self.feature_selection)
@@ -110,11 +112,11 @@ class EmbeddingClassifier:
         # perform feature selection
         start_time = time()
         if self.feature_selection:
-            # This code is for SFS
-            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
-            # This code is for mRMR
-            # clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            # The code below is for finding the best SFS features
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
+            #                                                 self.dataset_name, device)
+            # The code below is for getting the best features once they have already been found and hard coded into utils
+            clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_svm)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -146,10 +148,10 @@ class EmbeddingClassifier:
         log(f"Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
             f"Classification time on {self.dataset_name} svm {clf_time}: ", "time")
 
+        # perform and log predictions
         predictions = clf_svm.predict(clf_X_test)
         test_accuracy = np.round(accuracy_score(self.y_test, predictions) * 100, 2)
         save_preds(predictions, self.y_test, type(clf_svm).__name__, self.dataset_name, self.feature_selection)
-
         return test_accuracy
 
     def predict_ann(self, device):
@@ -158,15 +160,16 @@ class EmbeddingClassifier:
         clf_ann = ANN(self.X_train.shape[1])
         start_time = time()
         if self.feature_selection:
-            # This code is for SFS
-            clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
-            # This code is for mRMR
-            # clf_X_train, clf_X_test = mRMR_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            # The code below is for finding the best SFS features
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
+            #                                                 self.dataset_name, device)
+            # The code below is for getting the best features once they have already been found and hard coded into utils
+            clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_ann)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
 
+        # train 5 ANN's and take their average to account for random initialisation of weights
         ann_list = [ANN(clf_X_train.shape[1]).to(device) for i in range(5)]
         seed_list = [12345, 67890, 34567, 98765, 45678]
         accuracies = np.array([])
@@ -191,6 +194,7 @@ class EmbeddingClassifier:
                        self.feature_selection)
             append_accuracies_file(self.dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
 
+        # log features and time stamps
         if self.feature_selection:
             bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
         average_clf_time = round(sum(times) / len(times), 2)
@@ -206,6 +210,7 @@ class EmbeddingClassifier:
         return avg_accuracy, high_deviation, low_deviation
 
     def get_mrmr_features(self):
+        """helper method for getting the top 5 features that were precalculated using mRMR feature selection"""
         X = self.data.drop('labels', axis=1)
         X = X.apply(pd.to_numeric, errors='coerce').astype(float)
         assert not (X.isna().any().any())
@@ -241,8 +246,6 @@ def get_best_feature_set(clf, X_train, y_train, n_features_to_select, device):
     """returns the best set for classifying using an SVM/KNN clf, uses cross-validation and takes the set with the
     highest mean accuracy"""
     best_score = 0
-    best_subset = None
-    count = 1
     if isinstance(clf, (KNeighborsClassifier, SVC)):
         sfs = SequentialFeatureSelector(estimator=clf, cv=5, n_jobs=-1, n_features_to_select=n_features_to_select,
                                         scoring='accuracy')
@@ -276,6 +279,7 @@ def feature_selected_sets(clf, X_train, X_test, y_train, dn, device='cpu'):
 
 
 def save_test_train_split(X, X_train, X_test, dataset_name):
+    """helper method that saves the train and test splits so the same splits can be used for the reference system"""
     train_indices = np.array([X.tolist().index(X_train[i].tolist()) for i in range(len(X_train))])
     test_indices = np.array([X.tolist().index(X_test[i].tolist()) for i in range(len(X_test))])
 

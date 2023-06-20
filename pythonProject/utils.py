@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 from itertools import chain, combinations
 from pathlib import Path
 
@@ -7,6 +8,8 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
 from torch_geometric.utils import to_dense_adj, degree
 
 feature_names = {0: "balaban", 1: "estrada", 2: "narumi", 3: "padmakar-ivan", 4: "polarity-nr", 5: "randic",
@@ -91,6 +94,70 @@ inputs = {
     90: ("ER_MD", "svm", None, True)
 }
 
+top_5_mRMR_features = {"PTC_MR": [14, 2, 15, 1, 0],
+                       "PTC_MM": [14, 2, 15, 1, 0],
+                       "PTC_FM": [14, 2, 16, 15, 8],
+                       "PTC_FR": [14, 0, 1, 2, 15],
+                       "MUTAG": [8, 0, 10, 5, 9],
+                       "Mutagenicity": [0, 13, 16, 15, 14],
+                       "ER_MD": [5, 15, 12, 0, 0],
+                       "DHFR_MD": [12, 15, 9, 5, 0]
+                       }
+sfs_features_ann = {
+    "PTC_MR": [10, 3, 7, 9, 4, 8, 1, 12, 0, 2],
+    "PTC_MM": [0, 1, 8, 3, 2, 16, 4, 5, 14, 6],
+    "PTC_FM": [1, 0, 8, 9, 10, 16, 2, 12, 4, 13],
+    "PTC_FR": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "MUTAG": [5, 0, 2, 8, 4, 9, 14, 12, 6, 3],
+    "Mutagenicity": [16, 9, 8, 1, 15, 7, 10, 5, 11, 14],
+    "ER_MD": [0, 1, 2, 3, 7, 10, 14, 12, 4, 11],
+    "DHFR_MD": [2, 0, 1, 3, 4, 8, 5, 10, 6, 12]
+}
+
+sfs_features_svm = {
+    "PTC_MR": [1, 2, 4, 5, 6, 7, 8, 9, 10, 11],
+    "PTC_MM": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "PTC_FM": [0, 1, 2, 4, 5, 8, 10, 14, 15, 16],
+    "PTC_FR": [0, 1, 2, 3, 4, 5, 6, 8, 12, 14],
+    "MUTAG": [1, 2, 3, 4, 5, 6, 8, 9, 10, 15],
+    "Mutagenicity": [0, 4, 6, 9, 10, 11, 13, 14, 15, 16],
+    "ER_MD": [2, 3, 4, 5, 6, 10, 11, 14, 15, 16],
+    "DHFR_MD": [0, 1, 2, 3, 5, 6, 7, 8, 12, 14]
+}
+
+sfs_features_knn = {
+    "PTC_MR": [2, 4, 5, 6, 8, 9, 10, 11, 12, 16],
+    "PTC_MM": [0, 4, 6, 7, 8, 9, 10, 11, 13, 14],
+    "PTC_FM": [0, 3, 4, 5, 6, 8, 9, 10, 15, 16],
+    "PTC_FR": [2, 3, 4, 5, 6, 8, 9, 11, 12, 13],
+    "MUTAG": [0, 1, 2, 3, 4, 6, 10, 13, 14, 16],
+    "Mutagenicity": [0, 4, 5, 6, 7, 8, 11, 14, 15, 16],
+    "ER_MD": [0, 3, 4, 5, 6, 10, 11, 14, 15, 16],
+    "DHFR_MD": [0, 1, 2, 3, 4, 5, 6, 7, 14, 16]
+}
+
+
+def mRMR_applied_datasets(X_train, X_test, dataset_name):
+    """helper method for embedding_classifier, returns the modified X_train and X_tests for mRMR"""
+    X_train_fs = X_train[:, top_5_mRMR_features[dataset_name]]
+    X_test_fs = X_test[:, top_5_mRMR_features[dataset_name]]
+    return X_train_fs, X_test_fs
+
+
+def sfs_applied_datasets(X_train, X_test, dataset_name, clf):
+    """helper method for embedding_classifier, returns the modified X_train and X_tests for SFS"""
+    if isinstance(clf, SVC):
+        feature_list = sfs_features_svm[dataset_name]
+    elif isinstance(clf, KNeighborsClassifier):
+        feature_list = sfs_features_knn[dataset_name]
+    else:
+        feature_list = sfs_features_ann[dataset_name]
+
+    X_train_fs = X_train[:, feature_list]
+    X_test_fs = X_test[:, feature_list]
+    return X_train_fs, X_test_fs
+
+
 BALABAN = 0
 ESTRADA = 1
 NARUMI = 2
@@ -140,9 +207,11 @@ def is_connected(graph):
 
 def log(text, dir):
     """used to print all the print statements into a log.txt file"""
+    now = datetime.now()
+    current_time = now.strftime("%H:%M:%S")
     Path(f"log/{dir}").mkdir(parents=True, exist_ok=True)
     with open(f'log/{dir}/log.txt', mode='a') as file:
-        file.write(text + "\n")
+        file.write(current_time + ": " + text + "\n")
     file.close()
 
 
