@@ -94,7 +94,7 @@ class ReferenceClassifier:
                                      self.kernelized_data_test]
 
         # find best alpha with less extensive param_grid
-        clf_svm = svm.SVC(kernel='precomputed')
+        clf_svm = svm.SVC(kernel='precomputed', cache_size=15000, max_iter=30000)
         small_param_grid = {'C': [0.01, 0.1, 1, 10]}
         best_kernel_index = self.find_best_alpha(clf_svm, self.kernelized_data_train, self.y_train, small_param_grid)
 
@@ -135,11 +135,14 @@ class ReferenceClassifier:
         prev_score = 0
         best_kernel_index = 0
         for i, cur_kernel in enumerate(kernel):
+            cur_kernel = cur_kernel.round(decimals=2)
+            print(f"start with alpha {(i+1)*0.05}")
+            y_train_tmp = y_train.copy()
             grid_search = GridSearchCV(clf, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
                                        return_train_score=True, verbose=1, n_jobs=-1)
-            print('y_train shape: ', y_train.shape)
+            print('y_train shape: ', y_train_tmp.shape)
             print('cur_kernel shape: ', cur_kernel.shape, '\n')
-            grid_search.fit(cur_kernel, np.ravel(y_train))
+            grid_search.fit(cur_kernel, np.ravel(y_train_tmp))
             scores = grid_search.cv_results_['mean_test_score']
             mean_score = np.mean(scores)
 
