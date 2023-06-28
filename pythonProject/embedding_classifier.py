@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from ann import mean_score_ann, ANN, Data, train_ann
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, log, append_features_file, \
-    save_preds, append_hyperparams_file, append_accuracies_file, inputs
+    save_preds, append_hyperparams_file, append_accuracies_file, inputs, mrmr_applied_datasets
 
 np.random.seed(NP_SEED)
 DIR = "embedding_classifier"
@@ -61,10 +61,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # The code below is for finding the best SFS features
-            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
+            #                                               self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            # clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_knn)
+            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_knn)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -113,10 +113,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # The code below is for finding the best SFS features
-            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
+            #                                                self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            # clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_svm)
+            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_svm)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -161,10 +161,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # The code below is for finding the best SFS features
-            clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
+            #                                                self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            # clf_X_train, clf_X_test = sfs_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_ann)
+            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_ann)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time

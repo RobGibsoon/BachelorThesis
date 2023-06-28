@@ -100,7 +100,7 @@ class ReferenceClassifier:
 
         # do more detailed optimization now that we have the best kernel (alpha)
         big_param_grid = {'C': [0.001, 0.01, 0.1, 1, 10, 100]}
-        clf_svm = svm.SVC(kernel='precomputed')
+        clf_svm = svm.SVC(kernel='precomputed', cache_size=15000, max_iter=30000)
         detailed_grid_search = GridSearchCV(clf_svm, big_param_grid, cv=10, scoring='accuracy', error_score='raise',
                                             return_train_score=False, verbose=1, n_jobs=-1)
         log(f'Completing svm girdsearch on {self.dataset_name} with detailed param grid.', DIR)
@@ -112,7 +112,7 @@ class ReferenceClassifier:
 
         # do final fitting with best params
         best_svm = SVC(C=detailed_grid_search.best_params_['C'],
-                       kernel='precomputed')
+                       kernel='precomputed', cache_size=15000, max_iter=30000)
         log(f'fiting best_svm on {self.dataset_name}', DIR)
         start_time = time()
         best_svm.fit(self.kernelized_data_train[best_kernel_index], np.ravel(self.y_train))
@@ -136,7 +136,6 @@ class ReferenceClassifier:
         best_kernel_index = 0
         for i, cur_kernel in enumerate(kernel):
             cur_kernel = cur_kernel.round(decimals=2)
-            print(f"start with alpha {(i+1)*0.05}")
             y_train_tmp = y_train.copy()
             grid_search = GridSearchCV(clf, small_param_grid, cv=5, scoring='accuracy', error_score='raise',
                                        return_train_score=True, verbose=1, n_jobs=-1)

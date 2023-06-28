@@ -137,7 +137,7 @@ sfs_features_knn = {
 }
 
 
-def mRMR_applied_datasets(X_train, X_test, dataset_name):
+def mrmr_applied_datasets(X_train, X_test, dataset_name):
     """helper method for embedding_classifier, returns the modified X_train and X_tests for mRMR"""
     X_train_fs = X_train[:, top_5_mRMR_features[dataset_name]]
     X_test_fs = X_test[:, top_5_mRMR_features[dataset_name]]
@@ -288,6 +288,8 @@ def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
 
 def save_preds(preds, labels, clf, dn, fs, ref=False):
     """saves labels and predictions to a csv-file"""
+    # todo rollback
+    fs = 'mrmr'
     Path(f"log/predictions/").mkdir(parents=True, exist_ok=True)
     if not ref:
         data = {"preds": np.ravel(preds), "labels": np.ravel(labels)}
