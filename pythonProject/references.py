@@ -36,7 +36,7 @@ class ReferenceClassifier:
         test_graphs = [self.X[idx] for idx in test_split]
         self.y_train = np.array([self.y[idx] for idx in train_split])
         self.y_test = np.array([self.y[idx] for idx in test_split])
-        alpha_values = np.arange(0.05, 1.0, 0.1)
+        alpha_values = np.arange(0.05, 1.0, 0.2)
         self.kernelized_data_train = [create_custom_metric(train_graphs, train_graphs, alpha) for alpha in
                                       alpha_values]
         log(f'Finished generating train-data kernel for {self.dataset_name}', DIR)

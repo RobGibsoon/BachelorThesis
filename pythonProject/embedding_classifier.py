@@ -10,7 +10,7 @@ from mrmr import mrmr_classif
 from sklearn import svm
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from ann import mean_score_ann, ANN, Data, train_ann
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, log, append_features_file, \
-    save_preds, append_hyperparams_file, append_accuracies_file, inputs, mrmr_applied_datasets
+    save_preds, append_hyperparams_file, append_accuracies_file, mrmr_applied_datasets, get_csv_idx_split, inputs
 
 np.random.seed(NP_SEED)
 DIR = "embedding_classifier"
@@ -36,16 +36,23 @@ class EmbeddingClassifier:
         log(f'The dataframe has a total of {self.data.isnull().sum().sum()} NaN values.', DIR)
         log(f'Data read successfully. See head: \n {self.data.head()}', DIR)
         print(f'torch cuda is available: {torch.cuda.is_available()}')
+
         self.y = self.data['labels'].values
-        self.X = self.data.drop('labels', axis=1).values.astype(float)
-        print('amount of non-unique rows: ', len(self.X) - len(np.unique(self.X, axis=0)))
+        self.X = self.data.drop(columns='labels').values
 
         # standardizing X, use z-standardization
         scaler = StandardScaler()
         scaler.fit(self.X)
         self.X = scaler.transform(self.X)
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(self.X, self.y, test_size=0.2,
-                                                                                random_state=NP_SEED)
+        print('amount of non-unique rows: ', len(self.X) - len(np.unique(self.X, axis=0)))
+
+        train_split = get_csv_idx_split(self.dataset_name, "train")
+        test_split = get_csv_idx_split(self.dataset_name, "test")
+        self.X_train = np.array([self.X[j] for j in train_split])
+        self.X_test = np.array([self.X[j] for j in test_split])
+        self.y_train = np.array([self.y[j] for j in train_split])
+        self.y_test = np.array([self.y[j] for j in test_split])
+
         # save_test_train_split(self.X, self.X_train, self.X_test, dataset_name)
         # print('saved test_train splits')
 
@@ -64,7 +71,7 @@ class EmbeddingClassifier:
             # clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
             #                                               self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_knn)
+            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -116,7 +123,7 @@ class EmbeddingClassifier:
             # clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
             #                                                self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_svm)
+            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -164,7 +171,7 @@ class EmbeddingClassifier:
             # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
             #                                                self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name, clf_ann)
+            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time

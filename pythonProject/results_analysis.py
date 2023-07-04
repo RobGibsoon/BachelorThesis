@@ -18,25 +18,26 @@ def read_csv_predictions(dn, clf, fs):
         z_scores = []
         for i in range(5):
             data = pd.read_csv(f'../log/predictions/preds_labels_ANN{i}_{dn}_fs{fs}.csv')
-            ref = pd.read_csv(f'../log/predictions/predictions_gnn_{dn}_{i + 1}.csv')
-            score = calc_z_score(data, ref['predictions'])
-            z_scores.append(score)
+            reference = pd.read_csv(f'../log/predictions/predictions_gnn_{dn}_{i + 1}.csv')
+            score = calc_z_score(data, reference['preds'])
             if score <= 5:
-                print(f'{dn} {fs} ann{i + 1} score: ', score)
-
-
+                z_scores.append(score)
+        if len(z_scores) > 2:
+            print(f'{dn} ann {fs}: {len(z_scores)}/5 was significantly relevant')
     elif clf == "knn":
         data = pd.read_csv(f'../log/predictions/preds_labels_KNeighborsClassifier_{dn}_fs{fs}.csv')
-        ref = pd.read_csv(f'../log/predictions/reference_preds_labels_KNeighborsClassifier_{dn}.csv')
-        score = calc_z_score(data, ref['preds'])
+        reference = pd.read_csv(f'../log/predictions/reference_preds_labels_KNeighborsClassifier_{dn}.csv')
+        if not (data['labels'].equals(reference['labels'])):
+            print(dn, fs, 'knn does not have equals labels')
+        score = calc_z_score(data, reference['preds'])
         if score <= 5:
             print(f'{dn} {fs} knn score: ', score)
-
-
     else:
         data = pd.read_csv(f'../log/predictions/preds_labels_SVC_{dn}_fs{fs}.csv')
-        ref = pd.read_csv(f'../log/predictions/reference_preds_labels_SVC_{dn}.csv')
-        score = calc_z_score(data, ref['preds'])
+        reference = pd.read_csv(f'../log/predictions/reference_preds_labels_SVC_{dn}.csv')
+        if not (data['labels'].equals(reference['labels'])):
+            print(dn, fs, 'svm does not have equals labels')
+        score = calc_z_score(data, reference['preds'])
         if score <= 5:
             print(f'{dn} {fs} svm score: ', score)
 
@@ -188,10 +189,10 @@ def calc_stand_devs():
 
 if __name__ == "__main__":
     for combination in inputs.values():
-        ref = combination[3]
-        fs = combination[2]
+        is_ref = combination[3]
+        is_fs = combination[2]
         clf = combination[1]
         dn = combination[0]
-        if ref or clf == "svm" or (clf == "knn" and dn == "Mutagenicity"):
+        if is_ref or (clf == "knn" and dn == "Mutagenicity"):
             continue
-        read_csv_predictions(dn, clf, fs)
+        read_csv_predictions(dn, clf, is_fs)
