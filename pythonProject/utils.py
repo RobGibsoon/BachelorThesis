@@ -289,7 +289,7 @@ def append_hyperparams_file(fs, gs, clf, dn, dir, ref=False):
 def save_preds(preds, labels, clf, dn, fs, ref=False):
     """saves labels and predictions to a csv-file"""
     # if you youse mrmr feature selection then uncomment the next line
-    # fs = 'mrmr'
+    fs = 'mrmr'
     Path(f"log/predictions/").mkdir(parents=True, exist_ok=True)
     if not ref:
         data = {"preds": np.ravel(preds), "labels": np.ravel(labels)}

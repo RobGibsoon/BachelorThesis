@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from ann import mean_score_ann, ANN, Data, train_ann
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, log, append_features_file, \
-    save_preds, append_hyperparams_file, append_accuracies_file, get_csv_idx_split, inputs
+    save_preds, append_hyperparams_file, append_accuracies_file, get_csv_idx_split, inputs, mrmr_applied_datasets
 
 np.random.seed(NP_SEED)
 DIR = "embedding_classifier"
@@ -68,10 +68,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # The code below is for finding the best SFS features
-            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
+            #                                                 self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            # clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -120,10 +120,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # The code below is for finding the best SFS features
-            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
+            #                                                 self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            # clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -168,10 +168,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # The code below is for finding the best SFS features
-            clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
-                                                            self.dataset_name, device)
+            # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
+            #                                                 self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            # clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -200,7 +200,8 @@ class EmbeddingClassifier:
             save_preds(predictions, self.y_test, type(clf_ann).__name__ + f"{i}", self.dataset_name,
                        self.feature_selection)
             append_accuracies_file(self.dataset_name, "ann", self.feature_selection, accuracy, DIR, index=i)
-
+        append_accuracies_file(self.dataset_name, "ann_std", self.feature_selection, np.round(np.std(accuracies), 2),
+                               DIR)
         # log features and time stamps
         if self.feature_selection:
             bf_fs_time = datetime.utcfromtimestamp(bf_fs_time).strftime('%H:%M:%S.%f')[:-4]
