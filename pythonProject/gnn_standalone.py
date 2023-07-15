@@ -82,6 +82,7 @@ def main():
     print(dataset_name)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data = TUDataset(root=f'/tmp/{dataset_name}', name=f'{dataset_name}')
+    start_total_time = time()
     input_dim = data.num_node_features
     hidden_dim = 32
     output_dim = data.num_classes
@@ -120,6 +121,9 @@ def main():
     log(f"The average classification time on {dataset_name} gnn: {average_clf_time}", "time")
 
     print(f'Average GNN Accuracy over 5 runs: {np.mean(accuracies) * 100:.2f}%')
+    total_time = datetime.utcfromtimestamp(time() - start_total_time).strftime('%H:%M:%S.%f')[:-4]
+    log(f"Total reference GNN time on {dataset_name}: {total_time}", "time/reference")
+
     append_accuracies_file(dataset_name, 'gnn_average', None, f'{np.mean(accuracies) * 100:.2f}%', DIR, ref=True)
 
 

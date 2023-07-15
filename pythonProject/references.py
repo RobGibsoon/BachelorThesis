@@ -49,6 +49,7 @@ class ReferenceClassifier:
 
     def predict_knn(self):
         """train and predict with knn"""
+        start_total_time = time()
         log(f'running references on: ({self.dataset_name}, knn)', DIR)
         k_range = list(range(1, 31))
         param_grid = {'algorithm': ['brute'],
@@ -83,15 +84,19 @@ class ReferenceClassifier:
         save_preds(predictions, self.y_test, type(best_knn).__name__, self.dataset_name, False, ref=True)
         grid_search_time = datetime.utcfromtimestamp(grid_search_time).strftime('%H:%M:%S.%f')[:-4]
         clf_time = datetime.utcfromtimestamp(clf_time).strftime('%H:%M:%S.%f')[:-4]
-        log(f"Reference Gridsearch time on {self.dataset_name} svm: {grid_search_time} \n"
-            f"Reference Classification time on {self.dataset_name} svm {clf_time}: ", "time")
+
+        total_time = datetime.utcfromtimestamp(time() - start_total_time).strftime('%H:%M:%S.%f')[:-4]
+
+        log(f"Reference Gridsearch time on {self.dataset_name} k-nn: {grid_search_time} \n"
+            f"Reference Classification time on {self.dataset_name} k-nn {clf_time}: ", "time")
+        log(f"Total reference k-nn time on {self.dataset_name}: {total_time}", "time/reference")
 
         return test_accuracy
 
     def predict_svm(self):
         """train and predict with svm"""
         log(f'running references on: ({self.dataset_name}, knn)', DIR)
-
+        start_total_time = time()
         self.kernelized_data_train = [data_training * (-1) for data_training in
                                       self.kernelized_data_train]
         self.kernelized_data_test = [data_test * (-1) for data_test in
@@ -131,6 +136,9 @@ class ReferenceClassifier:
         predictions = best_svm.predict(self.kernelized_data_test[best_kernel_index])
         test_accuracy = accuracy_score(self.y_test, predictions) * 100
         save_preds(predictions, self.y_test, type(best_svm).__name__, self.dataset_name, False, ref=True)
+
+        total_time = datetime.utcfromtimestamp(time() - start_total_time).strftime('%H:%M:%S.%f')[:-4]
+        log(f"Total reference svm time on {self.dataset_name}: {total_time}", "time/reference")
 
         return test_accuracy
 

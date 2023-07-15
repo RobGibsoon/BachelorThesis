@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from ann import mean_score_ann, ANN, Data, train_ann
 from references import ReferenceClassifier
 from utils import NP_SEED, get_feature_names, log, append_features_file, \
-    save_preds, append_hyperparams_file, append_accuracies_file, get_csv_idx_split, inputs, mrmr_applied_datasets
+    save_preds, append_hyperparams_file, append_accuracies_file, get_csv_idx_split, inputs
 
 np.random.seed(NP_SEED)
 DIR = "embedding_classifier"
@@ -58,6 +58,7 @@ class EmbeddingClassifier:
 
     def predict_knn(self):
         """train and predict with knn"""
+        start_total_time = time()
         k_range = list(range(1, 31))
         param_grid = {'metric': ['euclidean', 'manhattan', 'cosine'],
                       'algorithm': ['brute'],
@@ -68,10 +69,10 @@ class EmbeddingClassifier:
         start_time = time()
         if self.feature_selection:
             # The code below is for finding the best SFS features
-            # clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
-            #                                                 self.dataset_name, device)
+            clf_X_train, clf_X_test = feature_selected_sets(clf_knn, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            # clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -107,6 +108,9 @@ class EmbeddingClassifier:
         predictions = knn.predict(clf_X_test)
         test_accuracy = np.round(accuracy_score(self.y_test, predictions) * 100, 2)
         save_preds(predictions, self.y_test, type(clf_knn).__name__, self.dataset_name, self.feature_selection)
+
+        total_time = datetime.utcfromtimestamp(time() - start_total_time).strftime('%H:%M:%S.%f')[:-4]
+        log(f"Total reference knn time on {self.dataset_name} SFS={self.feature_selection}: {total_time}", "time/TDE")
         return test_accuracy
 
     def predict_svm(self):
@@ -115,15 +119,16 @@ class EmbeddingClassifier:
                       'gamma': [0.001, 0.01, 0.1, 1, 10, 100],
                       'kernel': ['rbf', 'sigmoid']}
         clf_svm = svm.SVC()
+        start_total_time = time()
 
         # perform feature selection
         start_time = time()
         if self.feature_selection:
             # The code below is for finding the best SFS features
-            # clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
-            #                                                 self.dataset_name, device)
+            clf_X_train, clf_X_test = feature_selected_sets(clf_svm, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            # clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -159,19 +164,23 @@ class EmbeddingClassifier:
         predictions = clf_svm.predict(clf_X_test)
         test_accuracy = np.round(accuracy_score(self.y_test, predictions) * 100, 2)
         save_preds(predictions, self.y_test, type(clf_svm).__name__, self.dataset_name, self.feature_selection)
+
+        total_time = datetime.utcfromtimestamp(time() - start_total_time).strftime('%H:%M:%S.%f')[:-4]
+        log(f"Total reference svm time on {self.dataset_name} SFS={self.feature_selection}: {total_time}", "time/TDE")
         return test_accuracy
 
     def predict_ann(self, device):
         """train and predict 5 ANN's"""
+        start_total_time = time()
 
         clf_ann = ANN(self.X_train.shape[1])
         start_time = time()
         if self.feature_selection:
             # The code below is for finding the best SFS features
-            # clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
-            #                                                 self.dataset_name, device)
+            clf_X_train, clf_X_test = feature_selected_sets(clf_ann, self.X_train, self.X_test, self.y_train,
+                                                            self.dataset_name, device)
             # The code below is for getting the best features once they have already been found and hard coded into utils
-            clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
+            # clf_X_train, clf_X_test = mrmr_applied_datasets(self.X_train, self.X_test, self.dataset_name)
         else:
             clf_X_train, clf_X_test = self.X_train, self.X_test
         bf_fs_time = time() - start_time
@@ -215,6 +224,9 @@ class EmbeddingClassifier:
         avg_accuracy = np.round(np.sum(accuracies) / 5, 2)
         high_deviation = np.max(accuracies) - avg_accuracy
         low_deviation = avg_accuracy - min(accuracies)
+
+        total_time = datetime.utcfromtimestamp(time() - start_total_time).strftime('%H:%M:%S.%f')[:-4]
+        log(f"Total reference ann time on {self.dataset_name} SFS={self.feature_selection}: {total_time}", "time/TDE")
         return avg_accuracy, high_deviation, low_deviation
 
     def get_mrmr_features(self):
