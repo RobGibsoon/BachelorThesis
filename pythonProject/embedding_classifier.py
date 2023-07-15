@@ -110,7 +110,7 @@ class EmbeddingClassifier:
         save_preds(predictions, self.y_test, type(clf_knn).__name__, self.dataset_name, self.feature_selection)
 
         total_time = datetime.utcfromtimestamp(time() - start_total_time).strftime('%H:%M:%S.%f')[:-4]
-        log(f"Total reference knn time on {self.dataset_name} SFS={self.feature_selection}: {total_time}", "time/TDE")
+        log(f"Total TDE knn time on {self.dataset_name} SFS={self.feature_selection}: {total_time}", "time/TDE")
         return test_accuracy
 
     def predict_svm(self):
@@ -166,7 +166,7 @@ class EmbeddingClassifier:
         save_preds(predictions, self.y_test, type(clf_svm).__name__, self.dataset_name, self.feature_selection)
 
         total_time = datetime.utcfromtimestamp(time() - start_total_time).strftime('%H:%M:%S.%f')[:-4]
-        log(f"Total reference svm time on {self.dataset_name} SFS={self.feature_selection}: {total_time}", "time/TDE")
+        log(f"Total TDE svm time on {self.dataset_name} SFS={self.feature_selection}: {total_time}", "time/TDE")
         return test_accuracy
 
     def predict_ann(self, device):
@@ -226,7 +226,7 @@ class EmbeddingClassifier:
         low_deviation = avg_accuracy - min(accuracies)
 
         total_time = datetime.utcfromtimestamp(time() - start_total_time).strftime('%H:%M:%S.%f')[:-4]
-        log(f"Total reference ann time on {self.dataset_name} SFS={self.feature_selection}: {total_time}", "time/TDE")
+        log(f"Total TDE ann time on {self.dataset_name} SFS={self.feature_selection}: {total_time}", "time/TDE")
         return avg_accuracy, high_deviation, low_deviation
 
     def get_mrmr_features(self):
