@@ -36,9 +36,13 @@ class ReferenceClassifier:
         test_graphs = [self.X[idx] for idx in test_split]
         self.y_train = np.array([self.y[idx] for idx in train_split])
         self.y_test = np.array([self.y[idx] for idx in test_split])
-        alpha_values = np.arange(0.05, 1.0, 0.2)
+        # todo: rollback 1.2 to 0.2
+        alpha_values = np.arange(0.05, 1.0, 1.2)
+        start_time = time()
         self.kernelized_data_train = [create_custom_metric(train_graphs, train_graphs, alpha) for alpha in
                                       alpha_values]
+        ged_calc_time = datetime.utcfromtimestamp(time() - start_time).strftime('%H:%M:%S.%f')[:-4]
+        log(f'Time to calculate GED for {self.dataset_name}: {ged_calc_time}', "time/reference")
         log(f'Finished generating train-data kernel for {self.dataset_name}', DIR)
         self.kernelized_data_test = [create_custom_metric(test_graphs, train_graphs, alpha) for alpha in alpha_values]
         log(f'Finished generating test-data kernel for {self.dataset_name}', DIR)
