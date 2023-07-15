@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
-from utils import feature_names, inputs
+from utils import feature_names, top_5_mRMR_features
 
 """This file contains various methods that were used to analyse the results more efficiently."""
 
@@ -14,10 +14,12 @@ def read_csv_predictions(dn, clf, fs):
     if we discard the hypothesis, we conclude that the embedding (E1) has a higher average accuracy than the reference (E2)"""
     # todo Check whether mRMR or SFS selection was used. If SFS -> fs can be left alone, if mRMR -> uncomment next line
     true_false = fs
-    fs = 'mrmr'
+    # fs = 'mrmr'
     if clf == "ann":
         z_scores = []
         for i in range(5):
+            if dn == "Mutagenicity":
+                print("here")
             data = pd.read_csv(f'../log/predictions/preds_labels_ANN{i}_{dn}_fs{fs}.csv')
             reference = pd.read_csv(f'../log/predictions/predictions_gnn_{dn}_{i + 1}.csv')
             score = calc_z_score(dn, clf, data, reference['preds'])
@@ -26,8 +28,6 @@ def read_csv_predictions(dn, clf, fs):
         if len(z_scores) > 2:
             print(f'{dn} ann {true_false}: {len(z_scores)}/5 was significantly relevant')
     elif clf == "knn":
-        if dn == "MUTAG":
-            print("here")
         data = pd.read_csv(f'../log/predictions/preds_labels_KNeighborsClassifier_{dn}_fs{fs}.csv')
         reference = pd.read_csv(f'../log/predictions/reference_preds_labels_KNeighborsClassifier_{dn}.csv')
         if not (data['labels'].equals(reference['labels'])):
@@ -62,12 +62,21 @@ def calc_z_score(dn, clf, data, ref_preds):
     return N_Z * 100
 
 
+# reverse the dictionary for easy lookup
+reverse_feature_dict = {v: k for k, v in feature_names.items()}
+
+
+def generate_indices_list(classifier):
+    clf_list = []
+    for dataset, features in classifier.items():
+        indices = [reverse_feature_dict[feature] for feature in features]
+        clf_list.append(indices)
+        print(f"\"{dataset}\": {indices},")
+
+    return clf_list
+
+
 def create_indices_lists_from_names_list():
-    feature_dict = feature_names
-
-    # reverse the dictionary for easy lookup
-    reverse_feature_dict = {v: k for k, v in feature_dict.items()}
-
     # data provided for each dataset (replaced mod_zag with mod_zagreb, balban with balaban, n_imp with n_impurity,
     # label_ent with label_entropy and edge_str with edge_strength)
     data = {
@@ -80,34 +89,125 @@ def create_indices_lists_from_names_list():
         "ER_MD": ["randic", "label_entropy", "mod_zagreb", "balaban", "balaban"],
         "DHFR_MD": ["mod_zagreb", "label_entropy", "nodes", "randic", "balaban"]
     }
+    SVC = {
+        "MUTAG": ["estrada", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "zagreb", "nodes", "edges",
+                  "label_entropy"],
+        "Mutagenicity": ["balaban", "estrada", "polarity-nr", "szeged", "nodes", "schultz", "hyp_wiener", "n_impurity",
+                         "label_entropy", "edge_strength"],
+        "ER_MD": ["balaban", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "zagreb", "n_impurity",
+                  "label_entropy", "edge_strength"],
+        "DHFR_MD": ["balaban", "estrada", "narumi", "padmakar-ivan", "randic", "szeged", "wiener", "zagreb",
+                    "n_impurity", "label_entropy"],
+        "PTC_MR": ["balaban", "estrada", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "wiener",
+                   "edges", "label_entropy"],
+        "PTC_MM": ["balaban", "estrada", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "wiener",
+                   "zagreb", "nodes"],
+        "PTC_FM": ["balaban", "padmakar-ivan", "polarity-nr", "randic", "zagreb", "nodes", "edges", "n_impurity",
+                   "label_entropy", "edge_strength"],
+        "PTC_FR": ["balaban", "estrada", "narumi", "polarity-nr", "randic", "wiener", "zagreb", "nodes", "n_impurity",
+                   "edge_strength"]
+    }
+    KNN = {
+        "MUTAG": ["balaban", "estrada", "narumi", "padmakar-ivan", "polarity-nr", "szeged", "edges", "hyp_wiener",
+                  "n_impurity", "edge_strength"],
+        "Mutagenicity": ["balaban", "narumi", "padmakar-ivan", "polarity-nr", "szeged", "zagreb", "nodes", "n_impurity",
+                         "label_entropy", "edge_strength"],
+        "ER_MD": ["balaban", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "zagreb", "edges",
+                  "n_impurity", "edge_strength"],
+        "DHFR_MD": ["balaban", "estrada", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "wiener",
+                    "n_impurity", "edge_strength"],
+        "PTC_MR": ["estrada", "padmakar-ivan", "polarity-nr", "randic", "wiener", "zagreb", "nodes", "mod_zagreb",
+                   "hyp_wiener", "edge_strength"],
+        "PTC_MM": ["estrada", "padmakar-ivan", "polarity-nr", "randic", "szeged", "zagreb", "nodes", "schultz",
+                   "hyp_wiener", "n_impurity"],
+        "PTC_FM": ["balaban", "narumi", "polarity-nr", "randic", "wiener", "zagreb", "nodes", "edges", "hyp_wiener",
+                   "edge_strength"],
+        "PTC_FR": ["estrada", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "zagreb", "nodes",
+                   "schultz", "hyp_wiener"]
+    }
+    ANN = {
+        "MUTAG": ["zagreb", "balaban", "schultz", "polarity-nr", "edge_strength", "nodes", "hyp_wiener", "n_impurity",
+                  "mod_zagreb", "szeged"],
+        "Mutagenicity": ["edge_strength", "label_entropy", "randic", "narumi", "wiener", "schultz", "polarity-nr",
+                         "n_impurity", "hyp_wiener", "mod_zagreb"],
+        "ER_MD": ["wiener", "balaban", "nodes", "edges", "szeged", "randic", "hyp_wiener", "n_impurity", "polarity-nr",
+                  "label_entropy"],
+        "DHFR_MD": ["balaban", "estrada", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "wiener",
+                    "n_impurity", "zagreb"],
+        "PTC_MR": ["n_impurity", "mod_zagreb", "edge_strength", "wiener", "hyp_wiener", "zagreb", "schultz", "estrada",
+                   "padmakar-ivan", "polarity-nr"],
+        "PTC_MM": ["narumi", "nodes", "wiener", "n_impurity", "balaban", "estrada", "padmakar-ivan", "polarity-nr",
+                   "hyp_wiener", "randic"],
+        "PTC_FM": ["schultz", "balaban", "n_impurity", "polarity-nr", "estrada", "narumi", "szeged", "label_entropy",
+                   "edge_strength", "randic"],
+        "PTC_FR": ["balaban", "estrada", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "wiener",
+                   "zagreb", "nodes"]
+    }
 
-    # generate indices list for each dataset
-    for dataset, features in data.items():
-        indices = [reverse_feature_dict[feature] for feature in features]
-        print(f"\"{dataset}\": {indices},")
+    print("\n_________ANN__________ ")
+    ann_list = generate_indices_list(ANN)
+    get_feature_count(ANN)
+    print("\n_________K-NN__________ ")
+    k_nn_list = generate_indices_list(KNN)
+    get_feature_count(KNN)
+    print("\n_________SVC__________ ")
+    svc_list = generate_indices_list(SVC)
+    get_feature_count(SVC)
+    print("\n_________mRMR__________ ")
+    mRMR_features = {}
+    for key in top_5_mRMR_features:
+        string_names = []
+        for value in top_5_mRMR_features[key]:
+            string_names.append(feature_names[value])
+        mRMR_features[key] = string_names
+    print(mRMR_features)
+    get_feature_count(mRMR_features)
 
 
-def get_best_features():
+def get_feature_count(list):
+    # a dictionary to store the feature count
+    feature_count = {}
+
+    # loop through the ANN dictionary
+    for key in list:
+        # for each feature in the list
+        for feature in list[key]:
+            # if the feature is already in the feature_count dictionary, increment its count
+            if feature in feature_count:
+                feature_count[feature] += 1
+            # else, add the feature to the dictionary with a count of 1
+            else:
+                feature_count[feature] = 1
+    print(feature_count)
+    sorted_feature_count = sorted(feature_count.items(), key=lambda item: item[1], reverse=True)
+    print(sorted_feature_count)
+    return feature_count
+
+
+def get_best_features(list):
     """this can be used to pass the saved features and get back the indexes of the features"""
     scores = [0] * 17
     print(scores)
-    list = [[14, 2, 15, 1],
-            [14, 2, 15, 1],
-            [14, 2, 16, 15],
-            [14, 0, 2, 15],
-            [8, 0, 10, 5],
-            [0, 13, 16, 15],
-            [5, 15, 12, 9],
-            [12, 15, 9, 5]]
+    # list = [[14, 2, 15, 1],
+    #         [14, 2, 15, 1],
+    #         [14, 2, 16, 15],
+    #         [14, 0, 2, 15],
+    #         [8, 0, 10, 5],
+    #         [0, 13, 16, 15],
+    #         [5, 15, 12, 9],
+    #         [12, 15, 9, 5]]
 
     for i, dataset in enumerate(list):
-        score = 4
+        score = 16
         for j, idx in enumerate(dataset):
             scores[idx] += score - j
 
     print(scores)
     score = np.array(scores)
-    indices = score.argpartition(-4)[-4:]
+    print("score per feature:")
+    for i, elt in enumerate(score):
+        print(f"{feature_names[i]}: {elt}")
+    indices = score.argpartition(-5)[-5:]
 
     # The `highest_scores` array now contains the highest_scores of the 4 largest values in the original array.
     print("highest_scores of 4 max values:", indices)
@@ -115,6 +215,8 @@ def get_best_features():
     print("Indices of 4 max values, sorted:", indices_sorted)
     for i, descriptor in enumerate(indices_sorted):
         print(f"{i + 1}.", feature_names[descriptor])
+
+    print("This is done by adding, maybe a different approach would be better")
 
 
 def read_feature_output():
@@ -194,13 +296,15 @@ def calc_stand_devs():
 
 
 if __name__ == "__main__":
+    create_indices_lists_from_names_list()
+    # get_best_features()
     # calc_stand_devs()
 
-    for combination in inputs.values():
+    """for combination in inputs.values():
         is_ref = combination[3]
         is_fs = combination[2]
         clf = combination[1]
         dn = combination[0]
-        if is_ref or (clf == "knn" and dn == "Mutagenicity"):
+        if is_ref or (dn == "Mutagenicity"):
             continue
-        read_csv_predictions(dn, clf, is_fs)
+        read_csv_predictions(dn, clf, is_fs)"""
