@@ -180,8 +180,8 @@ def calculate_top_atts(dataset, dataset_name):
 
 
 def save_filter_split_file(successful_indices, dataset_name):
-    Path(f"log/dataset/index_splits/").mkdir(parents=True, exist_ok=True)
-    with open(f'log/dataset/index_splits/{dataset_name}_filter_split.csv', mode='w') as file:
+    Path(f"log/time/dataset/index_splits/").mkdir(parents=True, exist_ok=True)
+    with open(f'log/time/dataset/index_splits/{dataset_name}_filter_split.csv', mode='w') as file:
         writer = csv.writer(file)
         writer.writerow(successful_indices)
     file.close()
@@ -189,15 +189,16 @@ def save_filter_split_file(successful_indices, dataset_name):
 
 
 def create_df_and_save_to_csv(data, dataset_name):
+    Path(f"log/time/dataset/index_splits/").mkdir(parents=True, exist_ok=True)
     df = pd.DataFrame(data)
     print(df)
-    if not exists(f'log/dataset/embedded_{dataset_name}.csv'):
-        df.to_csv(f'log/dataset/embedded_{dataset_name}.csv', index=False)
+    if not exists(f'log/time/dataset/embedded_{dataset_name}.csv'):
+        df.to_csv(f'log/time/dataset/embedded_{dataset_name}.csv', index=False)
     else:
         i = 0
-        while exists(f'log/dataset/embedded_{dataset_name}_{i}.csv'):
+        while exists(f'log/time/dataset/embedded_{dataset_name}_{i}.csv'):
             i += 1
-        df.to_csv(f'log/dataset/embedded_{dataset_name}_{i}.csv', index=False)
+        df.to_csv(f'log/time/dataset/embedded_{dataset_name}_{i}.csv', index=False)
 
 
 if __name__ == "__main__":
