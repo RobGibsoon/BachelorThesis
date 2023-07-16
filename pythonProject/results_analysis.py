@@ -89,7 +89,7 @@ def create_indices_lists_from_names_list():
         "ER_MD": ["randic", "label_entropy", "mod_zagreb", "balaban", "balaban"],
         "DHFR_MD": ["mod_zagreb", "label_entropy", "nodes", "randic", "balaban"]
     }
-    SVC = {
+    SVM = {
         "MUTAG": ["estrada", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "zagreb", "nodes", "edges",
                   "label_entropy"],
         "Mutagenicity": ["balaban", "estrada", "polarity-nr", "szeged", "nodes", "schultz", "hyp_wiener", "n_impurity",
@@ -143,35 +143,88 @@ def create_indices_lists_from_names_list():
         "PTC_FR": ["balaban", "estrada", "narumi", "padmakar-ivan", "polarity-nr", "randic", "szeged", "wiener",
                    "zagreb", "nodes"]
     }
-
-    print("\n_________ANN__________ ")
-    ann_list = generate_indices_list(ANN)
-    get_feature_count(ANN)
-    print("\n_________K-NN__________ ")
-    k_nn_list = generate_indices_list(KNN)
-    get_feature_count(KNN)
-    print("\n_________SVC__________ ")
-    svc_list = generate_indices_list(SVC)
-    get_feature_count(SVC)
-    print("\n_________mRMR__________ ")
     mRMR_features = {}
     for key in top_5_mRMR_features:
         string_names = []
         for value in top_5_mRMR_features[key]:
             string_names.append(feature_names[value])
         mRMR_features[key] = string_names
-    print(mRMR_features)
+
+    # calculate count of feature appearance
+    print("Feature Counts")
+    print("\n_________K-NN__________ ")
+    get_feature_count(KNN)
+    print("\n_________SVM__________ ")
+    get_feature_count(SVM)
+    print("\n_________ANN__________ ")
+    get_feature_count(ANN)
+    print("\n_________mRMR__________ ")
     get_feature_count(mRMR_features)
 
+    # calculate it with points: RANK
+    print("\n\n\n\nRANK mode")
+    print("\n_________K-NN__________ ")
+    get_feature_points(KNN, 'RANK')
+    print("\n_________SVM__________ ")
+    get_feature_points(SVM, 'RANK')
+    print("\n_________ANN__________ ")
+    get_feature_points(ANN, 'RANK')
+    print("\n_________mRMR__________ ")
+    get_feature_points(mRMR_features, 'RANK')
 
-def get_feature_count(list):
+    # calculate it with points: HALVES
+    print("\n\n\n\nHALVES mode")
+    print("\n_________K-NN__________ ")
+    get_feature_points(KNN, 'HALVES')
+    print("\n_________SVC__________ ")
+    get_feature_points(SVM, 'HALVES')
+    print("\n_________ANN__________ ")
+    get_feature_points(ANN, 'HALVES')
+    print("\n_________mRMR__________ ")
+    get_feature_points(mRMR_features, 'HALVES')
+
+
+def get_feature_points(dict, mode):
+    """this method gives the features points based on how often they appear and which spot they place on
+    You can pick between two modes: HALVES, RANK"""
+
+    feature_points = {}
+
+    for key in dict:
+        for idx, feature in enumerate(dict[key]):
+            if feature not in feature_points:
+                feature_points[feature] = 0
+
+            if mode == 'HALVES':
+                half_point = len(dict[key]) // 2
+                if idx < half_point:
+                    feature_points[feature] += 2
+                else:
+                    feature_points[feature] += 1
+
+            elif mode == 'RANK':
+                if idx == 0:
+                    feature_points[feature] += 4
+                elif idx == 1:
+                    feature_points[feature] += 3
+                elif idx == 2:
+                    feature_points[feature] += 2
+                else:
+                    feature_points[feature] += 1
+    # sort features in dictionary by their counts
+    sorted_feature_count = sorted(feature_points.items(), key=lambda item: item[1], reverse=True)
+    print(sorted_feature_count)
+    return feature_points
+
+
+def get_feature_count(dict):
     # a dictionary to store the feature count
     feature_count = {}
 
     # loop through the ANN dictionary
-    for key in list:
+    for key in dict:
         # for each feature in the list
-        for feature in list[key]:
+        for feature in dict[key]:
             # if the feature is already in the feature_count dictionary, increment its count
             if feature in feature_count:
                 feature_count[feature] += 1
