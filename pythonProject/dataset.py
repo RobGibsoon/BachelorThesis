@@ -1,3 +1,4 @@
+import argparse
 import csv
 from datetime import datetime
 from os.path import exists
@@ -198,9 +199,17 @@ def create_df_and_save_to_csv(data, dataset_name):
 
 
 if __name__ == "__main__":
-    dataset = TUDataset(root='/tmp/Mutagenicity', name='Mutagenicity')
-    calculate_top_atts(dataset, dataset.name)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dn', type=str,
+                        help='The name of the data set to embed.')
+    args = parser.parse_args()
+    if args.dn is None:
+        raise argparse.ArgumentError(None, "Please pass a valid index.")
 
+    dn = args.dn
+    print(f"Embedding data set {dn}...")
+    dataset = TUDataset(root=f'/tmp/{dn}', name=f'{dn}')
+    # calculate_top_atts(dataset, dataset.name)
     dataset_name = dataset.name
     wanted_indices = [BALABAN, ESTRADA, NARUMI, PADMAKAR_IVAN, POLARITY_NR, RANDIC, SZEGED, WIENER, ZAGREB, NODES,
                       EDGES, SCHULTZ, MOD_ZAGREB, HYP_WIENER, N_IMPURITY, LABEL_ENTROPY, EDGE_STRENGTH]
@@ -218,4 +227,4 @@ if __name__ == "__main__":
 
     log(f"Embedding {dataset_name} time: {embedding_time}", "time")
     log(f"Saving embedded {dataset_name} time: {saving_time}", "time")
-    log(f"Total {dataset_name} embedding time: {total_time}\n", "time")
+    log(f"Total {dataset_name} embedding time: {total_time}\n", "time/dataset")
