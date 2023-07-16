@@ -2,6 +2,7 @@ import argparse
 import csv
 from datetime import datetime
 from os.path import exists
+from pathlib import Path
 from time import time
 
 import numpy as np
@@ -35,7 +36,7 @@ def create_embedded_graph_set(dataset, wanted_indices, dataset_name):
     print(f'Finished embedding successfully on {successful_count}/{len(dataset)} graphs but failed on '
           f'{unsuccessful_count}/{len(dataset)} graphs')
 
-    save_filter_split_file(successful_indices, dataset_name)
+    # save_filter_split_file(successful_indices, dataset_name)
     return embedded_graphs
 
 
@@ -179,7 +180,8 @@ def calculate_top_atts(dataset, dataset_name):
 
 
 def save_filter_split_file(successful_indices, dataset_name):
-    with open(f'../log/index_splits/{dataset_name}_filter_split.csv', mode='w') as file:
+    Path(f"log/dataset/index_splits/").mkdir(parents=True, exist_ok=True)
+    with open(f'log/dataset/index_splits/{dataset_name}_filter_split.csv', mode='w') as file:
         writer = csv.writer(file)
         writer.writerow(successful_indices)
     file.close()
@@ -189,13 +191,13 @@ def save_filter_split_file(successful_indices, dataset_name):
 def create_df_and_save_to_csv(data, dataset_name):
     df = pd.DataFrame(data)
     print(df)
-    if not exists(f'../embedded_{dataset_name}.csv'):
-        df.to_csv(f'../embedded_{dataset_name}.csv', index=False)
+    if not exists(f'log/dataset/embedded_{dataset_name}.csv'):
+        df.to_csv(f'log/dataset/embedded_{dataset_name}.csv', index=False)
     else:
         i = 0
-        while exists(f'../embedded_{dataset_name}_{i}.csv'):
+        while exists(f'log/dataset/embedded_{dataset_name}_{i}.csv'):
             i += 1
-        df.to_csv(f'../embedded_{dataset_name}_{i}.csv', index=False)
+        df.to_csv(f'log/dataset/embedded_{dataset_name}_{i}.csv', index=False)
 
 
 if __name__ == "__main__":
